@@ -2,13 +2,22 @@
 <html>
 <head>
 <title>Second Brain</title>
+
 <style>
-body{background:#0b0b14;color:#fff;font-family:sans-serif}
-input,textarea{width:100%;margin:5px 0;padding:10px}
-button{padding:10px;background:#7c6aff;color:#fff;border:none}
+body{background:#0b0b14;color:#fff;font-family:system-ui}
+input,textarea{width:100%;padding:12px;margin:6px 0;background:#111;border:1px solid #333;border-radius:8px}
+button{padding:10px;background:#7c6aff;border:none;border-radius:8px;color:#fff}
+#notes div{background:#1c1c35;padding:10px;margin:5px;border-radius:8px}
+.chat{background:#14142a;padding:10px;height:200px;overflow:auto;border-radius:10px}
 </style>
+
 </head>
 <body>
+
+<h2>Signup</h2>
+<input id="semail" placeholder="Email">
+<input id="spass" placeholder="Password">
+<button onclick="signup()">Signup</button>
 
 <h2>Login</h2>
 <input id="email" placeholder="Email">
@@ -27,16 +36,32 @@ button{padding:10px;background:#7c6aff;color:#fff;border:none}
 <hr>
 
 <h2>🤖 AI Chat</h2>
-<div id="chat"></div>
+<div class="chat" id="chat"></div>
 <input id="chatInput">
 <button onclick="sendMsg()">Send</button>
 <button onclick="startVoice()">🎤 Speak</button>
 
 <script>
-let userId = '';
 
+let userId = '';
+const BASE = "https://second-brain-98s0.onrender.com";
+
+// 🔐 Signup
+async function signup(){
+  await fetch(BASE+'/signup',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      email:semail.value,
+      password:spass.value
+    })
+  });
+  alert("Signup done");
+}
+
+// 🔐 Login
 async function login(){
-  const res = await fetch('https://second-brain-98s0.onrender.com/login',{
+  const res = await fetch(BASE+'/login',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
@@ -44,13 +69,15 @@ async function login(){
       password:pass.value
     })
   });
+
   const data = await res.json();
-  userId = data._id;
+  userId = data?._id;
   loadNotes();
 }
 
+// 📝 Save Note + Auto link
 async function saveNote(){
-  await fetch('https://second-brain-98s0.onrender.com/notes',{
+  await fetch(BASE+'/notes',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
@@ -59,28 +86,35 @@ async function saveNote(){
       body:body.value
     })
   });
+
   loadNotes();
 }
 
+// 📥 Load Notes
 async function loadNotes(){
-  const res = await fetch('https://second-brain-98s0.onrender.com/notes/'+userId);
+  const res = await fetch(BASE+'/notes/'+userId);
   const data = await res.json();
+
   notes.innerHTML = data.map(n=>`<div>${n.title}</div>`).join('');
 }
 
+// 🤖 AI Chat
 async function sendMsg(){
   const msg = chatInput.value;
-  const res = await fetch('https://second-brain-98s0.onrender.com/chat',{
+
+  const res = await fetch(BASE+'/chat',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({msg})
   });
+
   const data = await res.json();
+
   chat.innerHTML += `<div>👤 ${msg}</div>`;
-  chat.innerHTML += `<div>🤖 ${data.choices[0].message.content}</div>`;
+  chat.innerHTML += `<div>🤖 ${data.choices?.[0]?.message?.content || 'Error'}</div>`;
 }
 
-// Voice AI
+// 🎤 Voice
 const recognition = new webkitSpeechRecognition();
 recognition.lang = "en-IN";
 
@@ -92,6 +126,7 @@ recognition.onresult = function(e){
   chatInput.value = e.results[0][0].transcript;
   sendMsg();
 }
+
 </script>
 
 </body>
