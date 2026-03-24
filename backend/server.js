@@ -58,7 +58,7 @@ app.post('/chat', async (req,res)=>{
       method:'POST',
       headers:{
         'Content-Type':'application/json',
-        'Authorization':'Bearer YOUR_API_KEY'
+        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
       },
       body:JSON.stringify({
         model:'openrouter/free',
