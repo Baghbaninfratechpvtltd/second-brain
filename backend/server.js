@@ -7,16 +7,16 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ✅ MongoDB
+// ✅ MongoDB (तुम्हारा URL already set है)
 mongoose.connect('mongodb+srv://ashuraza456_db_user:Ashu8648@second-brain.f1li8xg.mongodb.net/brain');
 
-// 👤 User
+// 👤 User Schema
 const User = mongoose.model('User', {
   email: String,
   password: String
 });
 
-// 🧠 Notes
+// 🧠 Notes Schema
 const Note = mongoose.model('Note', {
   userId: String,
   title: String,
@@ -47,22 +47,35 @@ app.get('/notes/:userId', async (req,res)=>{
   res.json(notes);
 });
 
-// 🤖 AI CHAT
+// 🤖 AI CHAT (FREE + fallback)
 app.post('/chat', async (req,res)=>{
-  const response = await fetch('https://openrouter.ai/api/v1/chat/completions',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'Authorization':'Bearer YOUR_API_KEY'
-    },
-    body:JSON.stringify({
-      model:'openai/gpt-3.5-turbo',
-      messages:[{role:'user',content:req.body.msg}]
-    })
+
+  try{
+    const r = await fetch('https://openrouter.ai/api/v1/chat/completions',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'Authorization':'Bearer YOUR_API_KEY'
+      },
+      body:JSON.stringify({
+        model:'openrouter/free',
+        messages:[{role:'user',content:req.body.msg}]
+      })
+    });
+
+    const data = await r.json();
+
+    if(data.choices){
+      return res.json(data);
+    }
+
+  }catch(e){}
+
+  // fallback
+  return res.json({
+    choices:[{message:{content:'Basic answer: '+req.body.msg}}]
   });
 
-  const data = await response.json();
-  res.json(data);
 });
 
 app.listen(3000, ()=>console.log('Server running'));
