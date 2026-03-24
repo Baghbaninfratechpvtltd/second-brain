@@ -7,7 +7,7 @@ app.use(cors());
 app.use(express.json());
 
 // MongoDB (temporary, बाद में बदलेंगे)
-mongoose.connect('mongodb://127.0.0.1:27017/brain');
+mongoose.connect('mongodb+srv://ashuraza456_db_user:Ashu8648@second-brain.f1li8xg.mongodb.net/brain');
 
 // Schema
 const User = mongoose.model('User', {
