@@ -3,6 +3,10 @@
 <head>
 <title>Second Brain Pro</title>
 
+<!-- PWA -->
+<link rel="manifest" href="manifest.json">
+
+<!-- Graph Library -->
 <script src="https://cdn.jsdelivr.net/npm/vis-network@9.1.2/dist/vis-network.min.js"></script>
 
 <style>
@@ -43,11 +47,13 @@ button{
   height:200px;
   overflow:auto;
   padding:10px;
+  border-radius:10px;
 }
 
 #graph{
   height:300px;
   background:#111;
+  border-radius:10px;
 }
 </style>
 
@@ -55,20 +61,20 @@ button{
 <body>
 
 <h2>Signup</h2>
-<input id="semail">
-<input id="spass">
+<input id="semail" placeholder="Email">
+<input id="spass" placeholder="Password">
 <button onclick="signup()">Signup</button>
 
 <h2>Login</h2>
-<input id="email">
-<input id="pass">
+<input id="email" placeholder="Email">
+<input id="pass" placeholder="Password">
 <button onclick="login()">Login</button>
 
 <hr>
 
 <h2>Notes</h2>
-<input id="title">
-<textarea id="body"></textarea>
+<input id="title" placeholder="Title">
+<textarea id="body" placeholder="Write your thoughts..."></textarea>
 <button onclick="saveNote()">Save</button>
 
 <div id="notes"></div>
@@ -82,7 +88,7 @@ button{
 
 <h2>🤖 AI Chat</h2>
 <div class="chat" id="chat"></div>
-<input id="chatInput">
+<input id="chatInput" placeholder="Ask anything...">
 <button onclick="sendMsg()">Send</button>
 <button onclick="startVoice()">🎤 Speak</button>
 
@@ -156,7 +162,7 @@ async function loadNotes(){
   new vis.Network(document.getElementById('graph'),{nodes,edges},{});
 }
 
-// AI Chat (with memory)
+// AI Chat (Memory)
 async function sendMsg(){
   const msg = chatInput.value;
 
@@ -186,6 +192,11 @@ function startVoice(){
 recognition.onresult = function(e){
   chatInput.value = e.results[0][0].transcript;
   sendMsg();
+}
+
+// 🔥 Service Worker register
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('sw.js');
 }
 
 </script>
