@@ -36,7 +36,7 @@ button{padding:10px;background:#7c6aff;color:#fff;border:none}
 let userId = '';
 
 async function login(){
-  const res = await fetch('https://your-app.onrender.com/login',{
+  const res = await fetch('http://localhost:3000/login',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
@@ -50,7 +50,7 @@ async function login(){
 }
 
 async function saveNote(){
-  await fetch('https://your-app.onrender.com/notes',{
+  await fetch('http://localhost:3000/notes',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({
@@ -63,14 +63,14 @@ async function saveNote(){
 }
 
 async function loadNotes(){
-  const res = await fetch('https://your-app.onrender.com/notes/'+userId);
+  const res = await fetch('http://localhost:3000/notes/'+userId);
   const data = await res.json();
   notes.innerHTML = data.map(n=>`<div>${n.title}</div>`).join('');
 }
 
 async function sendMsg(){
   const msg = chatInput.value;
-  const res = await fetch('https://your-app.onrender.com/chat',{
+  const res = await fetch('http://localhost:3000/chat',{
     method:'POST',
     headers:{'Content-Type':'application/json'},
     body:JSON.stringify({msg})
