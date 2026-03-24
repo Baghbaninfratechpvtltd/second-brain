@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Second Brain</title>
+<style>
+body{background:#0b0b14;color:#fff;font-family:sans-serif}
+input,textarea{width:100%;margin:5px 0;padding:10px}
+button{padding:10px;background:#7c6aff;color:#fff;border:none}
+</style>
+</head>
+<body>
+
+<h2>Login</h2>
+<input id="email" placeholder="Email">
+<input id="pass" placeholder="Password">
+<button onclick="login()">Login</button>
+
+<hr>
+
+<h2>Notes</h2>
+<input id="title" placeholder="Title">
+<textarea id="body"></textarea>
+<button onclick="saveNote()">Save</button>
+
+<div id="notes"></div>
+
+<hr>
+
+<h2>🤖 AI Chat</h2>
+<div id="chat"></div>
+<input id="chatInput">
+<button onclick="sendMsg()">Send</button>
+<button onclick="startVoice()">🎤 Speak</button>
+
+<script>
+let userId = '';
+
+async function login(){
+  const res = await fetch('http://localhost:3000/login',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      email:email.value,
+      password:pass.value
+    })
+  });
+  const data = await res.json();
+  userId = data._id;
+  loadNotes();
+}
+
+async function saveNote(){
+  await fetch('http://localhost:3000/notes',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({
+      userId,
+      title:title.value,
+      body:body.value
+    })
+  });
+  loadNotes();
+}
+
+async function loadNotes(){
+  const res = await fetch('http://localhost:3000/notes/'+userId);
+  const data = await res.json();
+  notes.innerHTML = data.map(n=>`<div>${n.title}</div>`).join('');
+}
+
+async function sendMsg(){
+  const msg = chatInput.value;
+  const res = await fetch('http://localhost:3000/chat',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({msg})
+  });
+  const data = await res.json();
+  chat.innerHTML += `<div>👤 ${msg}</div>`;
+  chat.innerHTML += `<div>🤖 ${data.choices[0].message.content}</div>`;
+}
+
+// Voice AI
+const recognition = new webkitSpeechRecognition();
+recognition.lang = "en-IN";
+
+function startVoice(){
+  recognition.start();
+}
+
+recognition.onresult = function(e){
+  chatInput.value = e.results[0][0].transcript;
+  sendMsg();
+}
+</script>
+
+</body>
+</html>
