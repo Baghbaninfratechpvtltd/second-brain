@@ -46,7 +46,7 @@ button{padding:10px;background:#7c6aff;border:none;border-radius:8px;color:#fff}
 let userId = '';
 const BASE = "https://second-brain-98s0.onrender.com";
 
-// 🔐 Signup
+// Signup
 async function signup(){
   await fetch(BASE+'/signup',{
     method:'POST',
@@ -59,7 +59,7 @@ async function signup(){
   alert("Signup done");
 }
 
-// 🔐 Login
+// Login
 async function login(){
   const res = await fetch(BASE+'/login',{
     method:'POST',
@@ -75,7 +75,7 @@ async function login(){
   loadNotes();
 }
 
-// 📝 Save Note + Auto link
+// Save Note
 async function saveNote(){
   await fetch(BASE+'/notes',{
     method:'POST',
@@ -90,7 +90,7 @@ async function saveNote(){
   loadNotes();
 }
 
-// 📥 Load Notes
+// Load Notes
 async function loadNotes(){
   const res = await fetch(BASE+'/notes/'+userId);
   const data = await res.json();
@@ -98,7 +98,7 @@ async function loadNotes(){
   notes.innerHTML = data.map(n=>`<div>${n.title}</div>`).join('');
 }
 
-// 🤖 AI Chat
+// AI Chat
 async function sendMsg(){
   const msg = chatInput.value;
 
@@ -114,7 +114,7 @@ async function sendMsg(){
   chat.innerHTML += `<div>🤖 ${data.choices?.[0]?.message?.content || 'Error'}</div>`;
 }
 
-// 🎤 Voice
+// Voice AI
 const recognition = new webkitSpeechRecognition();
 recognition.lang = "en-IN";
 
