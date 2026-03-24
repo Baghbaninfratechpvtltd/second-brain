@@ -1,27 +1,21 @@
 {
-  "name": "Second Brain v3",
-  "short_name": "SecondBrain",
-  "description": "Tumhara AI-powered Second Brain — Notes, Reminders, Translation, Photo AI",
-  "start_url": "./index.html",
+  "name": "Second Brain AI",
+  "short_name": "Brain",
+  "start_url": "/",
   "display": "standalone",
-  "background_color": "#080810",
+  "background_color": "#0f0f1a",
   "theme_color": "#7c6aff",
-  "orientation": "portrait-primary",
+  "orientation": "portrait",
   "icons": [
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'%3E%3Crect width='192' height='192' rx='40' fill='%237c6aff'/%3E%3Ctext y='130' font-size='120' text-anchor='middle' x='96'%3E%F0%9F%A7%A0%3C/text%3E%3C/svg%3E",
+      "src": "icon.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/png"
     },
     {
-      "src": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Crect width='512' height='512' rx='100' fill='%237c6aff'/%3E%3Ctext y='360' font-size='320' text-anchor='middle' x='256'%3E%F0%9F%A7%A0%3C/text%3E%3C/svg%3E",
+      "src": "icon.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/png"
     }
-  ],
-  "categories": ["productivity", "education"],
-  "lang": "hi",
-  "scope": "./"
+  ]
 }
