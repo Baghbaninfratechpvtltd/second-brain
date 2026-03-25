@@ -1,113 +1,205 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-
-// fetch support
-global.fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const bcrypt = require("bcryptjs");
+const jwt = require("jsonwebtoken");
 
 const app = express();
-
-app.use(cors({ origin: "*" }));
+app.use(cors());
 app.use(express.json());
+app.use(express.static("public"));
 
-// MongoDB
-mongoose.connect('mongodb+srv://ashuraza456_db_user:Ashu8648@second-brain.f1li8xg.mongodb.net/brain')
-.then(()=>console.log("DB Connected"))
-.catch(err=>console.log("DB Error:", err));
+// ─── CONFIG — Render pe Environment Variables mein daalein ───
+const MONGO_URI  = process.env.MONGO_URI  || "YOUR_MONGODB_URI";
+const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey123";
+const GEMINI_KEY = process.env.GEMINI_KEY || "YOUR_GEMINI_API_KEY";
+// ─────────────────────────────────────────────────────────────
 
-// Models
-const User = mongoose.model('User',{email:String,password:String});
-const Note = mongoose.model('Note',{userId:String,title:String,body:String});
+mongoose.connect(MONGO_URI)
+  .then(() => console.log("✅ MongoDB Connected"))
+  .catch(e => console.log("❌ MongoDB Error:", e.message));
 
-// Test
-app.get('/',(req,res)=>res.send("Server running OK"));
+// ─── MODELS ──────────────────────────────────────────────────
 
-// Signup
-app.post('/signup', async (req,res)=>{
- try{
-  const user = await User.create(req.body);
-  res.json(user);
- }catch(e){
-  res.json({error:"Signup failed"});
- }
+const UserSchema = new mongoose.Schema({
+  email:    { type: String, unique: true, required: true },
+  password: { type: String, required: true }
 });
+const User = mongoose.model("User", UserSchema);
 
-// Login
-app.post('/login', async (req,res)=>{
- try{
-  const user = await User.findOne(req.body);
-  res.json(user);
- }catch(e){
-  res.json({error:"Login failed"});
- }
+const NoteSchema = new mongoose.Schema({
+  userId:    { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  title:     { type: String, required: true },
+  body:      { type: String, default: "" },
+  createdAt: { type: Date, default: Date.now }
 });
+const Note = mongoose.model("Note", NoteSchema);
 
-// Notes
-app.post('/notes', async (req,res)=>{
- try{
-  const note = await Note.create(req.body);
-  res.json(note);
- }catch(e){
-  res.json({error:"Save failed"});
- }
-});
+// ─── AUTH MIDDLEWARE ──────────────────────────────────────────
 
-app.get('/notes/:userId', async (req,res)=>{
- try{
-  const notes = await Note.find({userId:req.params.userId});
-  res.json(notes);
- }catch(e){
-  res.json([]);
- }
-});
-
-// 🤖 AI DEBUG VERSION
-app.post('/chat', async (req,res)=>{
- try{
-  console.log("MSG:", req.body.msg);
-  console.log("KEY:", process.env.OPENROUTER_API_KEY);
-
-  const response = await fetch("https://openrouter.ai/api/v1/chat/completions",{
-   method:"POST",
-   headers:{
-    "Authorization":"Bearer " + process.env.OPENROUTER_API_KEY,
-    "Content-Type":"application/json"
-   },
-   body:JSON.stringify({
-    model:"mistralai/mistral-7b-instruct:free",
-    messages:[
-      {role:"user",content:req.body.msg}
-    ]
-   })
-  });
-
-  const data = await response.json();
-
-  console.log("AI DATA:", data);
-
-  if(data.error){
-    return res.json({
-      choices:[{message:{content:"AI ERROR: " + data.error.message}}]
-    });
+function authMiddleware(req, res, next) {
+  const token = req.headers["authorization"]?.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "Login karo pehle" });
+  try {
+    req.user = jwt.verify(token, JWT_SECRET);
+    next();
+  } catch {
+    res.status(401).json({ error: "Token invalid hai" });
   }
+}
 
-  res.json({
-    choices:[{
-      message:{
-        content: data?.choices?.[0]?.message?.content || "No AI response"
+// ─── ROUTES ──────────────────────────────────────────────────
+
+// SIGNUP
+app.post("/signup", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    if (!email || !password)
+      return res.status(400).json({ error: "Email aur password dono chahiye" });
+
+    const exists = await User.findOne({ email });
+    if (exists)
+      return res.status(400).json({ error: "Yeh email pehle se registered hai" });
+
+    const hashed = await bcrypt.hash(password, 10);
+    const user   = await User.create({ email, password: hashed });
+    res.json({ message: "Account ban gaya ✅" });
+  } catch (e) {
+    res.status(500).json({ error: "Signup fail ho gaya" });
+  }
+});
+
+// LOGIN
+app.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user)
+      return res.status(404).json({ error: "User nahi mila" });
+
+    const match = await bcrypt.compare(password, user.password);
+    if (!match)
+      return res.status(401).json({ error: "Password galat hai" });
+
+    const token = jwt.sign(
+      { id: user._id, email: user.email },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+    res.json({ token, email: user.email });
+  } catch (e) {
+    res.status(500).json({ error: "Login fail ho gaya" });
+  }
+});
+
+// SAVE NOTE
+app.post("/notes", authMiddleware, async (req, res) => {
+  try {
+    const { title, body } = req.body;
+    if (!title)
+      return res.status(400).json({ error: "Title zaroori hai" });
+    const note = await Note.create({ userId: req.user.id, title, body });
+    res.json(note);
+  } catch (e) {
+    res.status(500).json({ error: "Note save nahi hua" });
+  }
+});
+
+// GET ALL NOTES
+app.get("/notes", authMiddleware, async (req, res) => {
+  try {
+    const notes = await Note.find({ userId: req.user.id }).sort({ createdAt: -1 });
+    res.json(notes);
+  } catch (e) {
+    res.status(500).json({ error: "Notes load nahi hue" });
+  }
+});
+
+// DELETE NOTE
+app.delete("/notes/:id", authMiddleware, async (req, res) => {
+  try {
+    const note = await Note.findOne({ _id: req.params.id, userId: req.user.id });
+    if (!note)
+      return res.status(404).json({ error: "Note nahi mila" });
+    await note.deleteOne();
+    res.json({ message: "Note delete ho gaya ✅" });
+  } catch (e) {
+    res.status(500).json({ error: "Delete fail ho gaya" });
+  }
+});
+
+// ─── AI CHAT — Gemini with Memory + Claude-like Personality ──
+
+const SYSTEM_PROMPT = `You are a highly intelligent, helpful AI assistant — similar in style and quality to Claude by Anthropic.
+
+Your behavior:
+- Give clear, detailed, well-structured answers
+- Use bullet points, numbered lists, headings, and code blocks when helpful
+- Be honest — if you don't know something, say so clearly
+- Be warm, respectful, and never dismissive
+- Remember everything said earlier in this conversation and use that context
+- For coding: provide complete working code with explanations
+- For creative tasks: be imaginative and thoughtful
+- Always respond in the SAME language the user writes in (Hindi, English, or Hinglish)
+
+You are the AI inside "Second Brain" — a personal notes and knowledge app.`;
+
+app.post("/chat", authMiddleware, async (req, res) => {
+  try {
+    const { msg, history = [] } = req.body;
+    if (!msg)
+      return res.status(400).json({ error: "Message chahiye" });
+
+    // Build conversation contents for Gemini
+    const contents = [];
+
+    // System prompt as first exchange (Gemini ka trick)
+    contents.push({ role: "user",  parts: [{ text: SYSTEM_PROMPT }] });
+    contents.push({ role: "model", parts: [{ text: "Samajh gaya! Main aapka intelligent Second Brain assistant hoon. Poochho jo bhi chahiye!" }] });
+
+    // Past conversation history
+    for (const turn of history) {
+      contents.push({
+        role: turn.role === "user" ? "user" : "model",
+        parts: [{ text: turn.text }]
+      });
+    }
+
+    // Current message
+    contents.push({ role: "user", parts: [{ text: msg }] });
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents,
+          generationConfig: {
+            temperature:     0.7,
+            maxOutputTokens: 2048,
+            topP:            0.95
+          }
+        })
       }
-    }]
-  });
+    );
 
- }catch(e){
-  console.log("CRASH:", e);
-  res.json({
-    choices:[{message:{content:"Server crash"}}]
-  });
- }
+    const data = await response.json();
+
+    if (data.error) {
+      console.error("Gemini Error:", data.error);
+      return res.status(500).json({ error: "Gemini: " + data.error.message });
+    }
+
+    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Koi jawab nahi mila.";
+    res.json({ reply });
+
+  } catch (e) {
+    console.error("AI Error:", e);
+    res.status(500).json({ error: "AI request fail ho gaya" });
+  }
 });
 
-// PORT
-app.listen(process.env.PORT || 3000, ()=>{
-  console.log("Server started");
-});
+// ─── START ────────────────────────────────────────────────────
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Server chal raha hai port ${PORT} pe`));
