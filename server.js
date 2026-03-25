@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
-// ✅ fetch fix
+// ✅ fetch support
 global.fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 const app = express();
@@ -78,7 +78,7 @@ app.get('/notes/:userId', async (req,res)=>{
   }
 });
 
-// ✅ 🤖 REAL AI (OpenRouter)
+// ✅ 🤖 REAL FREE AI (WORKING)
 app.post('/chat', async (req,res)=>{
   try{
     const { msg } = req.body;
@@ -87,20 +87,36 @@ app.post('/chat', async (req,res)=>{
       method:"POST",
       headers:{
         "Authorization":"Bearer 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",
-        "Content-Type":"application/json"
+        "Content-Type":"application/json",
+        "HTTP-Referer":"https://second-brain-lovat-seven.vercel.app/",
+        "X-Title":"SecondBrainAI"
       },
       body:JSON.stringify({
-        model:"openai/gpt-3.5-turbo",
-        messages:[{role:"user",content:msg}]
+        model:"mistralai/mistral-7b-instruct:free",
+        messages:[
+          {
+            role:"user",
+            content:msg
+          }
+        ]
       })
     });
 
     const data = await response.json();
-    res.json(data);
+
+    res.json({
+      choices:[
+        {
+          message:{
+            content: data?.choices?.[0]?.message?.content || "AI no response"
+          }
+        }
+      ]
+    });
 
   }catch(e){
     res.json({
-      choices:[{message:{content:"AI error"}}]
+      choices:[{message:{content:"AI server error"}}]
     });
   }
 });
