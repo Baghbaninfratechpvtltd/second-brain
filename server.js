@@ -3,11 +3,11 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const path = require("path"); // File dhoondne ke liye zaroori hai
+const path = require("path"); // File routing ke liye zaroori
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "10mb" })); // Photo ke liye limit
+app.use(express.json({ limit: "10mb" })); // Photo upload limit
 app.use(express.static(path.join(__dirname, "public"))); // Public folder se files uthayega
 
 const MONGO_URI  = process.env.MONGO_URI;
@@ -46,25 +46,28 @@ app.post("/login", async (req, res) => {
   const user = await User.findOne({ email });
   if (user && await bcrypt.compare(password, user.password)) {
     const token = jwt.sign({ userId: user._id }, JWT_SECRET);
-    res.json({ token });
+    res.json({ token, email: user.email });
   } else { res.status(401).json({ error: "Details galat hain" }); }
 });
 
-// AI Chat Fix (Voice + Photo + History)
+// AI Chat with Vision (Photo) support
 app.post("/chat", async (req, res) => {
   try {
     const { msg, history, imageBase64 } = req.body;
     let contents = [];
 
-    history.forEach(h => {
-      contents.push({ role: h.role === "user" ? "user" : "model", parts: [{ text: h.text }] });
-    });
-
-    let parts = [{ text: msg || "Is photo ko samjhao" }];
-    if (imageBase64) {
-      parts.push({ inlineData: { mimeType: "image/jpeg", data: imageBase64.split(",")[1] } });
+    // History format fix
+    if (history) {
+      history.forEach(h => {
+        contents.push({ role: h.role === "user" ? "user" : "model", parts: [{ text: h.text }] });
+      });
     }
-    contents.push({ role: "user", parts: parts });
+
+    let userParts = [{ text: msg || "Is photo ko samjhao" }];
+    if (imageBase64) {
+      userParts.push({ inlineData: { mimeType: "image/jpeg", data: imageBase64.split(",")[1] } });
+    }
+    contents.push({ role: "user", parts: userParts });
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
       method: "POST",
@@ -78,7 +81,7 @@ app.post("/chat", async (req, res) => {
   } catch (e) { res.status(500).json({ error: "AI link error" }); }
 });
 
-// Sabse niche ye zaroori hai "Cannot GET /" fix ke liye
+// "Cannot GET /" fix
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
