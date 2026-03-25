@@ -2,26 +2,22 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
-// ✅ fetch support
 global.fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 
 const app = express();
 
-// ✅ CORS FIX
 app.use(cors({
-  origin: "*",
-  methods: ["GET","POST","PUT","DELETE"],
-  credentials: true
+  origin: "*"
 }));
 
 app.use(express.json());
 
-// ✅ MongoDB connect
+// MongoDB
 mongoose.connect('mongodb+srv://ashuraza456_db_user:Ashu8648@second-brain.f1li8xg.mongodb.net/brain')
 .then(()=>console.log("DB Connected"))
-.catch(err=>console.log("DB Error:", err));
+.catch(err=>console.log(err));
 
-// ✅ Models
+// Models
 const User = mongoose.model('User', {
   email: String,
   password: String
@@ -33,52 +29,51 @@ const Note = mongoose.model('Note', {
   body: String
 });
 
-// ✅ Test route
+// Test
 app.get('/', (req,res)=>{
   res.send("Server running OK");
 });
 
-// ✅ Signup
+// Signup
 app.post('/signup', async (req,res)=>{
   try{
     const user = await User.create(req.body);
     res.json(user);
-  }catch(e){
-    res.status(500).json({error:"Signup failed"});
+  }catch{
+    res.json({error:"Signup failed"});
   }
 });
 
-// ✅ Login
+// Login
 app.post('/login', async (req,res)=>{
   try{
     const user = await User.findOne(req.body);
     res.json(user);
-  }catch(e){
-    res.status(500).json({error:"Login failed"});
+  }catch{
+    res.json({error:"Login failed"});
   }
 });
 
-// ✅ Save Note
+// Notes
 app.post('/notes', async (req,res)=>{
   try{
     const note = await Note.create(req.body);
     res.json(note);
-  }catch(e){
-    res.status(500).json({error:"Save failed"});
+  }catch{
+    res.json({error:"Save failed"});
   }
 });
 
-// ✅ Get Notes
 app.get('/notes/:userId', async (req,res)=>{
   try{
     const notes = await Note.find({userId:req.params.userId});
     res.json(notes);
-  }catch(e){
-    res.status(500).json([]);
+  }catch{
+    res.json([]);
   }
 });
 
-// ✅ 🤖 REAL FREE AI (WORKING)
+// AI (FREE WORKING)
 app.post('/chat', async (req,res)=>{
   try{
     const { msg } = req.body;
@@ -93,37 +88,26 @@ app.post('/chat', async (req,res)=>{
       },
       body:JSON.stringify({
         model:"mistralai/mistral-7b-instruct:free",
-        messages:[
-          {
-            role:"user",
-            content:msg
-          }
-        ]
+        messages:[{role:"user",content:msg}]
       })
     });
 
     const data = await response.json();
 
     res.json({
-      choices:[
-        {
-          message:{
-            content: data?.choices?.[0]?.message?.content || "AI no response"
-          }
+      choices:[{
+        message:{
+          content: data?.choices?.[0]?.message?.content || "No response"
         }
-      ]
+      }]
     });
 
   }catch(e){
     res.json({
-      choices:[{message:{content:"AI server error"}}]
+      choices:[{message:{content:"AI error"}}]
     });
   }
 });
 
-// ✅ PORT
-const PORT = process.env.PORT || 3000;
-
-app.listen(PORT, ()=>{
-  console.log("Server started on " + PORT);
-});
+// PORT
+app.listen(process.env.PORT || 3000);
