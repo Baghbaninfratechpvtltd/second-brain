@@ -1,43 +1,3 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-
-global.fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
-
-const app = express();
-
-app.use(cors({ origin: "*" }));
-app.use(express.json());
-
-mongoose.connect('mongodb+srv://ashuraza456_db_user:Ashu8648@second-brain.f1li8xg.mongodb.net/brain')
-.then(()=>console.log("DB Connected"))
-.catch(err=>console.log(err));
-
-const User = mongoose.model('User',{email:String,password:String});
-const Note = mongoose.model('Note',{userId:String,title:String,body:String});
-
-app.get('/',(req,res)=>res.send("Server running OK"));
-
-app.post('/signup', async (req,res)=>{
- try{ res.json(await User.create(req.body)); }
- catch{ res.json({error:"fail"}); }
-});
-
-app.post('/login', async (req,res)=>{
- try{ res.json(await User.findOne(req.body)); }
- catch{ res.json({error:"fail"}); }
-});
-
-app.post('/notes', async (req,res)=>{
- try{ res.json(await Note.create(req.body)); }
- catch{ res.json({error:"fail"}); }
-});
-
-app.get('/notes/:userId', async (req,res)=>{
- try{ res.json(await Note.find({userId:req.params.userId})); }
- catch{ res.json([]); }
-});
-
 app.post('/chat', async (req,res)=>{
  try{
   const response = await fetch("https://openrouter.ai/api/v1/chat/completions",{
@@ -48,19 +8,34 @@ app.post('/chat', async (req,res)=>{
    },
    body:JSON.stringify({
     model:"mistralai/mistral-7b-instruct:free",
-    messages:[{role:"user",content:req.body.msg}]
+    messages:[
+      {role:"user",content:req.body.msg}
+    ]
    })
   });
 
   const data = await response.json();
 
+  console.log("AI RESPONSE:", data); // 🔥 DEBUG
+
+  // ✅ अगर error आया तो वही दिखाओ
+  if(data.error){
+    return res.json({
+      choices:[{message:{content:"AI ERROR: "+data.error.message}}]
+    });
+  }
+
   res.json({
-    choices:[{message:{content:data?.choices?.[0]?.message?.content || "No AI"}}]
+    choices:[{
+      message:{
+        content: data?.choices?.[0]?.message?.content || "No AI response"
+      }
+    }]
   });
 
- }catch{
-  res.json({choices:[{message:{content:"AI Error"}}]});
+ }catch(e){
+  res.json({
+    choices:[{message:{content:"Server AI crash"}}]
+  });
  }
 });
-
-app.listen(process.env.PORT || 3000);
