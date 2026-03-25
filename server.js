@@ -7,7 +7,7 @@ const jwt = require("jsonwebtoken");
 const app = express();
 app.use(cors());
 app.use(express.json());
-app.use(express.static("public"));
+app.use(express.static(__dirname));
 
 // ─── CONFIG — Render pe Environment Variables mein daalein ───
 const MONGO_URI  = process.env.MONGO_URI  || "YOUR_MONGODB_URI";
