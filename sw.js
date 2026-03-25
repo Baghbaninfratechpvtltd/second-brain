@@ -1,12 +1,12 @@
-// ✅ Simple & Safe Service Worker
+// Simple Service Worker — Second Brain PWA
 
 self.addEventListener("install", (event) => {
-  console.log("SW Installed");
+  console.log("✅ SW Installed");
   self.skipWaiting();
 });
 
 self.addEventListener("activate", (event) => {
-  console.log("SW Activated");
+  console.log("✅ SW Activated");
 });
 
-// ❌ fetch intercept मत करो (important)
+// Fetch intercept mat karo — server calls block ho jaate hain
