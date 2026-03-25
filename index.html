@@ -2,100 +2,97 @@
 <html lang="hi">
 <head>
   <meta charset="UTF-8">
-  <title>AI Second Brain Pro 🧠</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Second Brain 🧠</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
   <style>
-    /* Purana CSS rakhein aur ye naye add karein */
-    .feature-bar { display: flex; gap: 10px; margin-bottom: 10px; flex-wrap: wrap; }
-    .btn-small { padding: 5px 10px; font-size: 12px; cursor: pointer; border-radius: 5px; border: none; background: #7c3aed; color: white; }
-    .reminder-box { background: #2a2a4a; padding: 10px; border-radius: 8px; margin-top: 10px; display: none; }
-    .msg.ai { position: relative; }
-    .speak-btn { font-size: 16px; cursor: pointer; margin-left: 10px; }
-    #preview { max-width: 100px; display: none; border-radius: 5px; margin-top: 5px; }
+    /* Aapka Original CSS */
+    body { font-family: sans-serif; background: #0f0f1a; color: #e0e0e0; margin: 0; padding: 10px; }
+    .container { max-width: 600px; margin: auto; }
+    .card { background: #1a1a2e; padding: 20px; border-radius: 12px; margin-bottom: 15px; }
+    .msg { margin: 10px 0; padding: 10px; border-radius: 8px; }
+    .ai { background: #2a2a4a; position: relative; }
+    .user { background: #7c3aed; text-align: right; }
+    input { width: 80%; padding: 10px; border-radius: 5px; border: none; }
+    button { padding: 10px; background: #7c3aed; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    
+    /* New Features Style */
+    .features { display: flex; gap: 10px; margin-bottom: 10px; }
+    .speak-btn { cursor: pointer; font-size: 1.2rem; margin-left: 10px; vertical-align: middle; }
+    #preview { max-width: 100px; display: none; margin: 10px 0; border: 2px solid #7c3aed; }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>Second Brain 🧠</h1>
     
-    <div class="feature-bar">
-      <button class="btn-small" onclick="document.getElementById('fileInput').click()">📸 Photo</button>
-      <button class="btn-small" onclick="toggleReminder()">⏰ Reminder</button>
-      <button class="btn-small" onclick="clearChat()">🧹 Clear</button>
+    <div class="features">
+      <button onclick="document.getElementById('imgInp').click()">📸 Photo</button>
+      <button onclick="setReminder()">⏰ Reminder</button>
+      <button onclick="location.reload()">🔄 Refresh</button>
     </div>
 
-    <input type="file" id="fileInput" hidden accept="image/*" onchange="previewImage(event)">
+    <input type="file" id="imgInp" hidden accept="image/*" onchange="showPrev(event)">
     <img id="preview" />
 
-    <div id="reminderBox" class="reminder-box">
-      <input type="datetime-local" id="reminderTime">
-      <input type="text" id="reminderTask" placeholder="Kya yaad dilana hai?">
-      <button class="btn-small" onclick="setReminder()">Set</button>
+    <div id="chatBox" class="card" style="height: 400px; overflow-y: auto;">
+      <div class="msg ai">AI: Namaste! Main aapka assistant hoon. 🔊</div>
     </div>
 
-    <div id="chatBox" class="card" style="height: 400px; overflow-y: auto;"></div>
-    
-    <div class="input-area">
-      <input type="text" id="userInput" placeholder="Kuch bhi pucho ya translate karo...">
+    <div class="card">
+      <input type="text" id="userInput" placeholder="Kuch pucho ya Translate karo...">
       <button onclick="sendMsg()">Bhejo</button>
     </div>
   </div>
 
   <script>
     let chatHistory = [];
-    let selectedImage = null;
+    let imgData = null;
 
-    // --- Voice Feature ---
+    // 🔊 Voice Function
     function speak(text) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = 'hi-IN'; // Hindi voice
-      window.speechSynthesis.speak(utterance);
+      const msg = new SpeechSynthesisUtterance(text);
+      msg.lang = 'hi-IN';
+      window.speechSynthesis.speak(msg);
     }
 
-    // --- Photo Preview ---
-    function previewImage(event) {
-      const file = event.target.files[0];
+    // 📸 Photo Preview
+    function showPrev(e) {
       const reader = new FileReader();
-      reader.onload = function() {
-        selectedImage = reader.result;
-        document.getElementById('preview').src = selectedImage;
+      reader.onload = () => {
+        imgData = reader.result;
+        document.getElementById('preview').src = imgData;
         document.getElementById('preview').style.display = 'block';
-      }
-      reader.readAsDataURL(file);
+      };
+      reader.readAsDataURL(e.target.files[0]);
     }
 
-    // --- Reminder Logic ---
-    function toggleReminder() {
-      const box = document.getElementById('reminderBox');
-      box.style.display = box.style.display === 'block' ? 'none' : 'block';
-    }
-
+    // ⏰ Reminder Function
     function setReminder() {
-      const time = new Date(document.getElementById('reminderTime').value).getTime();
-      const task = document.getElementById('reminderTask').value;
-      const now = new Date().getTime();
-
-      if (time > now) {
+      const task = prompt("Kya yaad dilana hai?");
+      const mins = prompt("Kitne minute baad? (sirf number)");
+      if(task && mins) {
+        alert(`Theek hai, ${mins} min baad yaad dilaunga.`);
         setTimeout(() => {
           alert("⏰ REMINDER: " + task);
-          speak("Yaad dila rahi hoon: " + task);
-        }, time - now);
-        alert("Reminder set ho gaya!");
-        toggleReminder();
+          speak("Reminder: " + task);
+        }, mins * 60000);
       }
     }
 
+    // 💬 Send Message
     async function sendMsg() {
-      const input = document.getElementById("userInput");
-      const msg = input.value;
-      if (!msg && !selectedImage) return;
+      const inp = document.getElementById("userInput");
+      const msg = inp.value;
+      if(!msg && !imgData) return;
 
-      const chatBox = document.getElementById("chatBox");
-      chatBox.innerHTML += `<div class="msg user"><b>Aap:</b> ${msg}</div>`;
+      const box = document.getElementById("chatBox");
+      box.innerHTML += `<div class="msg user">${msg}</div>`;
       
-      input.value = "";
-      const currentImg = selectedImage;
-      selectedImage = null;
+      const currentImg = imgData;
+      imgData = null;
       document.getElementById('preview').style.display = 'none';
+      inp.value = "";
 
       try {
         const res = await fetch("/chat", {
@@ -104,17 +101,19 @@
           body: JSON.stringify({ msg, history: chatHistory, imageBase64: currentImg })
         });
         const data = await res.json();
-        
-        chatBox.innerHTML += `
+        const reply = data.reply || "Error aa gaya";
+
+        box.innerHTML += `
           <div class="msg ai">
-            <b>AI:</b> ${data.reply} 
-            <span class="speak-btn" onclick="speak('${data.reply.replace(/'/g, "")}')">🔊</span>
+            ${marked.parse(reply)}
+            <span class="speak-btn" onclick="speak(\`${reply.replace(/`/g, "")}\`)">🔊</span>
           </div>`;
-        chatHistory.push({ role: "user", text: msg }, { role: "model", text: data.reply });
+        
+        chatHistory.push({role:"user", text:msg}, {role:"model", text:reply});
+        box.scrollTop = box.scrollHeight;
       } catch (e) {
-        chatBox.innerHTML += `<div class="msg ai" style="color:red">Error!</div>`;
+        box.innerHTML += `<div class="msg ai" style="color:red">AI busy hai, baad mein try karein.</div>`;
       }
-      chatBox.scrollTop = chatBox.scrollHeight;
     }
   </script>
 </body>
