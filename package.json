@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "second-brain",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
@@ -8,6 +8,7 @@
   "dependencies": {
     "express": "^4.18.2",
     "mongoose": "^7.0.0",
-    "cors": "^2.8.5"
+    "cors": "^2.8.5",
+    "node-fetch": "^3.3.2"
   }
 }
