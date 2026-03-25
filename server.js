@@ -3,15 +3,22 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 
 const app = express();
-app.use(cors());
+
+// ✅ CORS FIX (VERY IMPORTANT)
+app.use(cors({
+  origin: "*",
+  methods: ["GET","POST","PUT","DELETE"],
+  credentials: true
+}));
+
 app.use(express.json());
 
-// MongoDB connect
+// ✅ MongoDB CONNECT
 mongoose.connect('mongodb+srv://ashuraza456_db_user:Ashu8648@second-brain.f1li8xg.mongodb.net/brain')
 .then(()=>console.log("DB Connected"))
-.catch(err=>console.log(err));
+.catch(err=>console.log("DB Error:", err));
 
-// Models
+// ✅ MODELS
 const User = mongoose.model('User', {
   email: String,
   password: String
@@ -23,43 +30,61 @@ const Note = mongoose.model('Note', {
   body: String
 });
 
-// Test
+// ✅ TEST ROUTE
 app.get('/', (req,res)=>{
   res.send("Server running OK");
 });
 
-// Signup
+// ✅ SIGNUP
 app.post('/signup', async (req,res)=>{
-  const user = await User.create(req.body);
-  res.json(user);
+  try{
+    const user = await User.create(req.body);
+    res.json(user);
+  }catch(e){
+    res.status(500).json({error:"Signup failed"});
+  }
 });
 
-// Login
+// ✅ LOGIN
 app.post('/login', async (req,res)=>{
-  const user = await User.findOne(req.body);
-  res.json(user);
+  try{
+    const user = await User.findOne(req.body);
+    res.json(user);
+  }catch(e){
+    res.status(500).json({error:"Login failed"});
+  }
 });
 
-// Save Note
+// ✅ SAVE NOTE
 app.post('/notes', async (req,res)=>{
-  const note = await Note.create(req.body);
-  res.json(note);
+  try{
+    const note = await Note.create(req.body);
+    res.json(note);
+  }catch(e){
+    res.status(500).json({error:"Save failed"});
+  }
 });
 
-// Get Notes
+// ✅ GET NOTES
 app.get('/notes/:userId', async (req,res)=>{
-  const notes = await Note.find({userId:req.params.userId});
-  res.json(notes);
+  try{
+    const notes = await Note.find({userId:req.params.userId});
+    res.json(notes);
+  }catch(e){
+    res.status(500).json([]);
+  }
 });
 
-// AI (temporary basic)
+// ✅ AI (basic working)
 app.post('/chat', (req,res)=>{
   res.json({
     choices:[{message:{content:"AI working 👍"}}]
   });
 });
 
-// PORT FIX
-app.listen(process.env.PORT || 3000, ()=>{
-  console.log("Server started");
+// ✅ PORT FIX
+const PORT = process.env.PORT || 3000;
+
+app.listen(PORT, ()=>{
+  console.log("Server started on " + PORT);
 });
