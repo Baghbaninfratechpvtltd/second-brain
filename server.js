@@ -3,23 +3,29 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
+const path = require("path");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// ─── CONFIG — Render pe Environment Variables mein daalein ───
+// index.html serve karo
+app.get("/", (req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
+// ─── CONFIG ───────────────────────────────────────────────────
 const MONGO_URI  = process.env.MONGO_URI  || "YOUR_MONGODB_URI";
 const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey123";
 const GEMINI_KEY = process.env.GEMINI_KEY || "YOUR_GEMINI_API_KEY";
-// ─────────────────────────────────────────────────────────────
+// ──────────────────────────────────────────────────────────────
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(e => console.log("❌ MongoDB Error:", e.message));
 
-// ─── MODELS ──────────────────────────────────────────────────
+// ─── MODELS ───────────────────────────────────────────────────
 
 const UserSchema = new mongoose.Schema({
   email:    { type: String, unique: true, required: true },
@@ -48,7 +54,7 @@ function authMiddleware(req, res, next) {
   }
 }
 
-// ─── ROUTES ──────────────────────────────────────────────────
+// ─── ROUTES ───────────────────────────────────────────────────
 
 // SIGNUP
 app.post("/signup", async (req, res) => {
@@ -62,7 +68,7 @@ app.post("/signup", async (req, res) => {
       return res.status(400).json({ error: "Yeh email pehle se registered hai" });
 
     const hashed = await bcrypt.hash(password, 10);
-    const user   = await User.create({ email, password: hashed });
+    await User.create({ email, password: hashed });
     res.json({ message: "Account ban gaya ✅" });
   } catch (e) {
     res.status(500).json({ error: "Signup fail ho gaya" });
@@ -128,7 +134,7 @@ app.delete("/notes/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// ─── AI CHAT — Gemini with Memory + Claude-like Personality ──
+// ─── AI CHAT ──────────────────────────────────────────────────
 
 const SYSTEM_PROMPT = `You are a highly intelligent, helpful AI assistant — similar in style and quality to Claude by Anthropic.
 
@@ -150,22 +156,16 @@ app.post("/chat", authMiddleware, async (req, res) => {
     if (!msg)
       return res.status(400).json({ error: "Message chahiye" });
 
-    // Build conversation contents for Gemini
     const contents = [];
-
-    // System prompt as first exchange (Gemini ka trick)
     contents.push({ role: "user",  parts: [{ text: SYSTEM_PROMPT }] });
     contents.push({ role: "model", parts: [{ text: "Samajh gaya! Main aapka intelligent Second Brain assistant hoon. Poochho jo bhi chahiye!" }] });
 
-    // Past conversation history
     for (const turn of history) {
       contents.push({
         role: turn.role === "user" ? "user" : "model",
         parts: [{ text: turn.text }]
       });
     }
-
-    // Current message
     contents.push({ role: "user", parts: [{ text: msg }] });
 
     const response = await fetch(
@@ -185,11 +185,8 @@ app.post("/chat", authMiddleware, async (req, res) => {
     );
 
     const data = await response.json();
-
-    if (data.error) {
-      console.error("Gemini Error:", data.error);
+    if (data.error)
       return res.status(500).json({ error: "Gemini: " + data.error.message });
-    }
 
     const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Koi jawab nahi mila.";
     res.json({ reply });
