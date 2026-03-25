@@ -2,26 +2,28 @@
 <html>
 <head>
 <title>Second Brain</title>
-<link rel="manifest" href="manifest.json">
 </head>
 <body>
 
 <h2>Signup</h2>
-<input id="semail"><input id="spass">
+<input id="semail" placeholder="email">
+<input id="spass" placeholder="password">
 <button onclick="signup()">Signup</button>
 
 <h2>Login</h2>
-<input id="email"><input id="pass">
+<input id="email" placeholder="email">
+<input id="pass" placeholder="password">
 <button onclick="login()">Login</button>
 
 <h2>Notes</h2>
-<input id="title"><textarea id="body"></textarea>
+<input id="title" placeholder="title">
+<textarea id="body"></textarea>
 <button onclick="saveNote()">Save</button>
 
 <div id="notes"></div>
 
 <h2>AI</h2>
-<input id="chatInput">
+<input id="chatInput" placeholder="Ask anything">
 <button onclick="sendMsg()">Send</button>
 
 <div id="chat"></div>
@@ -29,52 +31,116 @@
 <script>
 
 const BASE = "https://second-brain-98s0.onrender.com";
-let userId="";
+let userId = "";
 
+// ✅ SIGNUP
 async function signup(){
- await fetch(BASE+'/signup',{
-  method:'POST',
-  headers:{'Content-Type':'application/json'},
-  body:JSON.stringify({email:semail.value,password:spass.value})
- });
- alert("done");
+ try{
+  const r = await fetch(BASE + '/signup',{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({
+     email: semail.value,
+     password: spass.value
+   })
+  });
+
+  const d = await r.json();
+  alert("Signup Done ✅");
+
+ }catch(e){
+  alert("Signup Error ❌");
+  console.log(e);
+ }
 }
 
+// ✅ LOGIN
 async function login(){
- const r=await fetch(BASE+'/login',{
-  method:'POST',
-  headers:{'Content-Type':'application/json'},
-  body:JSON.stringify({email:email.value,password:pass.value})
- });
- const d=await r.json();
- userId=d._id;
- loadNotes();
+ try{
+  const r = await fetch(BASE + '/login',{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({
+     email: email.value,
+     password: pass.value
+   })
+  });
+
+  const d = await r.json();
+
+  if(!d || !d._id){
+    alert("Login Failed ❌");
+    return;
+  }
+
+  userId = d._id;
+  alert("Login Success ✅");
+
+  loadNotes();
+
+ }catch(e){
+  alert("Login Error ❌");
+  console.log(e);
+ }
 }
 
+// ✅ SAVE NOTE
 async function saveNote(){
- await fetch(BASE+'/notes',{
-  method:'POST',
-  headers:{'Content-Type':'application/json'},
-  body:JSON.stringify({userId,title:title.value,body:body.value})
- });
- loadNotes();
+ try{
+  await fetch(BASE + '/notes',{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({
+     userId,
+     title: title.value,
+     body: body.value
+   })
+  });
+
+  alert("Note Saved ✅");
+  loadNotes();
+
+ }catch(e){
+  alert("Save Error ❌");
+  console.log(e);
+ }
 }
 
+// ✅ LOAD NOTES
 async function loadNotes(){
- const r=await fetch(BASE+'/notes/'+userId);
- const d=await r.json();
- notes.innerHTML=d.map(n=>n.title).join("<br>");
+ try{
+  const r = await fetch(BASE + '/notes/' + userId);
+  const d = await r.json();
+
+  notes.innerHTML = d.map(n => `<p>${n.title}</p>`).join("");
+
+ }catch(e){
+  console.log(e);
+ }
 }
 
+// ✅ AI CHAT
 async function sendMsg(){
- const msg=chatInput.value;
- const r=await fetch(BASE+'/chat',{
-  method:'POST',
-  headers:{'Content-Type':'application/json'},
-  body:JSON.stringify({msg})
- });
- const d=await r.json();
- chat.innerHTML+= "<br>"+d.choices[0].message.content;
+ try{
+  const msg = chatInput.value;
+
+  const r = await fetch(BASE + '/chat',{
+   method:'POST',
+   headers:{'Content-Type':'application/json'},
+   body:JSON.stringify({ msg })
+  });
+
+  const d = await r.json();
+
+  const reply = d?.choices?.[0]?.message?.content || "No reply";
+
+  chat.innerHTML += `<p><b>You:</b> ${msg}</p>`;
+  chat.innerHTML += `<p><b>AI:</b> ${reply}</p>`;
+
+ }catch(e){
+  alert("AI Error ❌");
+  console.log(e);
+ }
 }
 
 </script>
