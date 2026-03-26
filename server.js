@@ -15,33 +15,15 @@ mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(e => console.log("❌ MongoDB Error:", e.message));
 
-// AI Chat Route (Simplified for Gemini 1.5 Flash)
+// AI Chat - Ekdam Simple Request Format
 app.post("/chat", async (req, res) => {
   try {
-    const { msg, history = [], imageBase64 } = req.body;
+    const { msg } = req.body; // Sirf message bhej rahe hain testing ke liye
     
-    // Format contents for Google API
-    let contents = [];
-    
-    // History add karein
-    history.forEach(h => {
-      contents.push({
-        role: h.role === "user" ? "user" : "model",
-        parts: [{ text: h.text }]
-      });
-    });
-
-    // Current message aur image add karein
-    let userParts = [{ text: msg || "Explain this image" }];
-    if (imageBase64) {
-      userParts.push({
-        inlineData: {
-          mimeType: "image/jpeg",
-          data: imageBase64.split(",")[1]
-        }
-      });
-    }
-    contents.push({ role: "user", parts: userParts });
+    const contents = [{
+      role: "user",
+      parts: [{ text: msg }]
+    }];
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
       method: "POST",
@@ -52,15 +34,14 @@ app.post("/chat", async (req, res) => {
     const data = await response.json();
     
     if (data.error) {
-      console.error("Gemini Error:", data.error.message);
       return res.status(400).json({ error: data.error.message });
     }
 
-    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response from AI.";
+    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No reply";
     res.json({ reply });
 
   } catch (e) {
-    res.status(500).json({ error: "Server error: " + e.message });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
@@ -69,4 +50,4 @@ app.get("*", (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Running on ${PORT}`));
