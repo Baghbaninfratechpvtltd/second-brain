@@ -6,7 +6,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Sabse zaroori: 'public' folder ko serve karna
+// Ye line 'public' folder ke andar rakhi index.html ko dhoondegi
 app.use(express.static(path.join(__dirname, "public")));
 
 const GEMINI_KEY = process.env.GEMINI_KEY;
@@ -23,19 +23,15 @@ app.post("/chat", async (req, res) => {
       }
     );
     const data = await response.json();
-    if (data.error) return res.status(400).json({ error: data.error.message });
-    
-    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response";
-    res.json({ reply });
+    res.json({ reply: data?.candidates?.[0]?.content?.parts?.[0]?.text || "No reply from AI" });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
 });
 
-// Agar koi page na mile toh index.html dikhao
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Server running`));
+app.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`));
