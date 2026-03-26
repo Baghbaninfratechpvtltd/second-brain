@@ -5,6 +5,8 @@ const path = require("path");
 const app = express();
 app.use(cors());
 app.use(express.json());
+
+// Public folder ki files dikhane ke liye
 app.use(express.static(path.join(__dirname, "public")));
 
 const GEMINI_KEY = process.env.GEMINI_KEY;
@@ -12,6 +14,7 @@ const GEMINI_KEY = process.env.GEMINI_KEY;
 app.post("/chat", async (req, res) => {
   try {
     const { msg } = req.body;
+    
     const response = await fetch(
       `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`,
       {
@@ -22,10 +25,13 @@ app.post("/chat", async (req, res) => {
         })
       }
     );
+
     const data = await response.json();
-    res.json({ reply: data?.candidates?.[0]?.content?.parts?.[0]?.text || "No reply" });
+    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response from AI";
+    res.json({ reply });
+
   } catch (e) {
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: "Server Error: " + e.message });
   }
 });
 
@@ -34,4 +40,4 @@ app.get("*", (req, res) => {
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Server running`));
+app.listen(PORT, () => console.log(`🚀 Server is live on port ${PORT}`));
