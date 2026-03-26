@@ -23,7 +23,7 @@ app.post("/chat", async (req, res) => {
       }
     );
     const data = await response.json();
-    res.json({ reply: data?.candidates?.[0]?.content?.parts?.[0]?.text || "No reply from AI" });
+    res.json({ reply: data?.candidates?.[0]?.content?.parts?.[0]?.text || "No response" });
   } catch (e) {
     res.status(500).json({ error: e.message });
   }
@@ -34,4 +34,4 @@ app.get("*", (req, res) => {
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server running on ${PORT}`));
