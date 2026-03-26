@@ -6,7 +6,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Ye line 'public' folder ke andar rakhi index.html ko dhoondegi
+// Ye line 'public' folder ko dhoondegi
 app.use(express.static(path.join(__dirname, "public")));
 
 const GEMINI_KEY = process.env.GEMINI_KEY;
@@ -29,9 +29,10 @@ app.post("/chat", async (req, res) => {
   }
 });
 
+// Agar kuch na mile toh index.html dikhao
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, () => console.log(`🚀 Server running on ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`));
