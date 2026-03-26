@@ -150,7 +150,7 @@ You are the AI inside "Second Brain" — a personal notes and knowledge app.`
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "google/gemma-3-27b-it:free",
+        model: "mistralai/mistral-7b-instruct:free",
         messages
       })
     });
