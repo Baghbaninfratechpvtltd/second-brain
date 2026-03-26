@@ -1,15 +1,13 @@
 <!DOCTYPE html>
-<html lang="hi">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Second Brain 🧠</title>
     <style>
-        body { font-family: sans-serif; background: #0f0f1a; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        #chatBox { width: 95%; max-width: 600px; height: 400px; background: #1a1a2e; overflow-y: auto; padding: 15px; border-radius: 12px; border: 1px solid #333; margin-bottom: 10px; }
-        .input-area { display: flex; gap: 10px; width: 95%; max-width: 600px; }
-        input { flex: 1; padding: 12px; border-radius: 8px; border: none; background: #0d0d1f; color: white; border: 1px solid #444; }
-        button { padding: 10px 20px; background: #7c3aed; color: white; border: none; border-radius: 8px; cursor: pointer; }
+        body { background: #0f0f1a; color: white; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; padding: 20px; }
+        #chatBox { width: 90%; max-width: 600px; height: 400px; background: #1a1a2e; overflow-y: auto; padding: 15px; border-radius: 10px; border: 1px solid #333; }
+        .input-area { margin-top: 10px; display: flex; gap: 10px; width: 90%; max-width: 600px; }
+        input { flex: 1; padding: 10px; border-radius: 5px; border: none; }
+        button { padding: 10px 20px; background: #7c3aed; color: white; border: none; cursor: pointer; border-radius: 5px; }
     </style>
 </head>
 <body>
@@ -19,17 +17,14 @@
         <input type="text" id="userInput" placeholder="Yahan likhein...">
         <button onclick="sendMsg()">Bhejo</button>
     </div>
-
     <script>
         async function sendMsg() {
             const input = document.getElementById("userInput");
             const box = document.getElementById("chatBox");
             const msg = input.value;
             if(!msg) return;
-
             box.innerHTML += `<p style="color:#a78bfa;"><b>Aap:</b> ${msg}</p>`;
             input.value = "";
-
             try {
                 const res = await fetch("/chat", {
                     method: "POST",
@@ -37,10 +32,8 @@
                     body: JSON.stringify({ msg })
                 });
                 const data = await res.json();
-                box.innerHTML += `<p><b>AI:</b> ${data.reply || "Error"}</p>`;
-            } catch (e) {
-                box.innerHTML += `<p style="color:red;">Connection Error!</p>`;
-            }
+                box.innerHTML += `<p><b>AI:</b> ${data.reply}</p>`;
+            } catch (e) { box.innerHTML += `<p style="color:red;">Error!</p>`; }
             box.scrollTop = box.scrollHeight;
         }
     </script>
