@@ -3,12 +3,12 @@ const mongoose = require("mongoose");
 const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const path = require("path"); // File routing ke liye zaroori
+const path = require("path");
 
 const app = express();
 app.use(cors());
-app.use(express.json({ limit: "10mb" })); // Photo upload limit
-app.use(express.static(path.join(__dirname, "public"))); // Public folder se files uthayega
+app.use(express.json({ limit: "10mb" }));
+app.use(express.static(path.join(__dirname, "public")));
 
 const MONGO_URI  = process.env.MONGO_URI;
 const JWT_SECRET = process.env.JWT_SECRET;
@@ -18,56 +18,23 @@ mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(e => console.log("❌ MongoDB Error:", e.message));
 
-// --- MODELS ---
-const User = mongoose.model("User", new mongoose.Schema({
-  email: { type: String, unique: true, required: true },
-  password: { type: String, required: true }
-}));
-
-const Note = mongoose.model("Note", new mongoose.Schema({
-  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-  title: { type: String, required: true },
-  body: { type: String, default: "" },
-  createdAt: { type: Date, default: Date.now }
-}));
-
-// --- ROUTES ---
-app.post("/signup", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const hashed = await bcrypt.hash(password, 10);
-    await User.create({ email, password: hashed });
-    res.json({ message: "Account ban gaya!" });
-  } catch (e) { res.status(500).json({ error: "Signup fail" }); }
-});
-
-app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-  const user = await User.findOne({ email });
-  if (user && await bcrypt.compare(password, user.password)) {
-    const token = jwt.sign({ userId: user._id }, JWT_SECRET);
-    res.json({ token, email: user.email });
-  } else { res.status(401).json({ error: "Details galat hain" }); }
-});
-
-// AI Chat with Vision (Photo) support
+// AI Chat - Bina Token ke chalne ke liye authMiddleware hata diya
 app.post("/chat", async (req, res) => {
   try {
-    const { msg, history, imageBase64 } = req.body;
+    const { msg, history = [], imageBase64 } = req.body;
     let contents = [];
 
-    // History format fix
-    if (history) {
+    if (history.length > 0) {
       history.forEach(h => {
         contents.push({ role: h.role === "user" ? "user" : "model", parts: [{ text: h.text }] });
       });
     }
 
-    let userParts = [{ text: msg || "Is photo ko samjhao" }];
+    let parts = [{ text: msg || "Is photo ko samjhao" }];
     if (imageBase64) {
-      userParts.push({ inlineData: { mimeType: "image/jpeg", data: imageBase64.split(",")[1] } });
+      parts.push({ inlineData: { mimeType: "image/jpeg", data: imageBase64.split(",")[1] } });
     }
-    contents.push({ role: "user", parts: userParts });
+    contents.push({ role: "user", parts: parts });
 
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`, {
       method: "POST",
@@ -81,10 +48,9 @@ app.post("/chat", async (req, res) => {
   } catch (e) { res.status(500).json({ error: "AI link error" }); }
 });
 
-// "Cannot GET /" fix
 app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => console.log(`🚀 Server on port ${PORT}`));
