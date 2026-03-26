@@ -6,30 +6,30 @@
     <title>Second Brain 🧠</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
     <style>
-        body { font-family: sans-serif; background: #0f0f1a; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; }
-        #chatBox { width: 100%; max-width: 600px; height: 500px; border: 1px solid #333; overflow-y: auto; margin-bottom: 10px; padding: 15px; background: #1a1a2e; border-radius: 10px; }
+        body { font-family: sans-serif; background: #0f0f1a; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; margin: 0; }
+        #chatBox { width: 95%; max-width: 600px; height: 75vh; border: 1px solid #333; overflow-y: auto; margin-bottom: 10px; padding: 15px; background: #1a1a2e; border-radius: 12px; }
         .msg { margin-bottom: 15px; display: flex; flex-direction: column; }
         .user { align-items: flex-end; }
         .ai { align-items: flex-start; }
-        .bubble { padding: 12px; border-radius: 10px; max-width: 85%; line-height: 1.5; }
-        .user .bubble { background: #7c3aed; color: white; }
-        .ai .bubble { background: #2a2a4a; color: #e0e0e0; }
-        .input-area { display: flex; gap: 10px; width: 100%; max-width: 600px; }
-        input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #0d0d1f; color: white; outline: none; }
-        button { padding: 10px 25px; background: #7c3aed; border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; }
-        button:hover { background: #6d28d9; }
+        .bubble { padding: 12px; border-radius: 10px; max-width: 85%; word-wrap: break-word; }
+        .user .bubble { background: #7c3aed; }
+        .ai .bubble { background: #2a2a4a; }
+        .input-area { display: flex; gap: 10px; width: 95%; max-width: 600px; }
+        input { flex: 1; padding: 12px; border-radius: 8px; border: 1px solid #444; background: #0d0d1f; color: white; }
+        button { padding: 10px 20px; background: #7c3aed; border: none; color: white; border-radius: 8px; cursor: pointer; font-weight: bold; }
     </style>
 </head>
 <body>
-    <h1>🧠 Second Brain</h1>
+    <h2 style="color: #a78bfa;">🧠 Second Brain</h2>
     <div id="chatBox"></div>
     <div class="input-area">
-        <input type="text" id="userInput" placeholder="Kuch bhi poochiye..." onkeypress="if(event.key==='Enter') sendMsg()">
+        <input type="text" id="userInput" placeholder="Kuch poochiye..." onkeypress="if(event.key==='Enter') sendMsg()">
         <button onclick="sendMsg()">Bhejo</button>
     </div>
 
     <script>
         const chatBox = document.getElementById("chatBox");
+        const BASE = window.location.origin; // Automatic URL detection
         let chatHistory = [];
 
         async function sendMsg() {
@@ -37,30 +37,28 @@
             const msg = input.value.trim();
             if (!msg) return;
 
-            // User message dikhana
             chatBox.innerHTML += `<div class="msg user"><div class="bubble">${msg}</div></div>`;
             input.value = "";
             chatBox.scrollTop = chatBox.scrollHeight;
 
             try {
-                const res = await fetch("/chat", {
+                const res = await fetch(BASE + "/chat", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ msg: msg, history: chatHistory })
+                    body: JSON.stringify({ msg, history: chatHistory })
                 });
 
                 const data = await res.json();
                 
                 if (data.error) {
-                    chatBox.innerHTML += `<div class="msg ai"><div class="bubble" style="color:#ff4d4d;">Error: ${data.error}</div></div>`;
+                    chatBox.innerHTML += `<div class="msg ai"><div class="bubble" style="color:red;">Error: ${data.error}</div></div>`;
                 } else {
                     const reply = data.reply;
                     chatBox.innerHTML += `<div class="msg ai"><div class="bubble">${marked.parse(reply)}</div></div>`;
-                    // History update karein
                     chatHistory.push({ role: "user", text: msg }, { role: "model", text: reply });
                 }
             } catch (e) {
-                chatBox.innerHTML += `<div class="msg ai"><div class="bubble" style="color:#ff4d4d;">Server se connection toot gaya.</div></div>`;
+                chatBox.innerHTML += `<div class="msg ai"><div class="bubble" style="color:red;">Server connection failed!</div></div>`;
             }
             chatBox.scrollTop = chatBox.scrollHeight;
         }
