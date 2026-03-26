@@ -8,7 +8,7 @@
         body { font-family: sans-serif; background: #0f0f1a; color: white; display: flex; flex-direction: column; align-items: center; padding: 20px; }
         #chatBox { width: 95%; max-width: 600px; height: 400px; background: #1a1a2e; overflow-y: auto; padding: 15px; border-radius: 12px; border: 1px solid #333; margin-bottom: 10px; }
         .input-area { display: flex; gap: 10px; width: 95%; max-width: 600px; }
-        input { flex: 1; padding: 12px; border-radius: 8px; border: none; background: #0d0d1f; color: white; }
+        input { flex: 1; padding: 12px; border-radius: 8px; border: none; background: #0d0d1f; color: white; border: 1px solid #444; }
         button { padding: 10px 20px; background: #7c3aed; color: white; border: none; border-radius: 8px; cursor: pointer; }
     </style>
 </head>
@@ -27,7 +27,7 @@
             const msg = input.value;
             if(!msg) return;
 
-            box.innerHTML += `<p><b>Aap:</b> ${msg}</p>`;
+            box.innerHTML += `<p style="color:#a78bfa;"><b>Aap:</b> ${msg}</p>`;
             input.value = "";
 
             try {
@@ -39,7 +39,7 @@
                 const data = await res.json();
                 box.innerHTML += `<p><b>AI:</b> ${data.reply || "Error"}</p>`;
             } catch (e) {
-                box.innerHTML += `<p style="color:red;">Error connecting to server</p>`;
+                box.innerHTML += `<p style="color:red;">Connection Error!</p>`;
             }
             box.scrollTop = box.scrollHeight;
         }
