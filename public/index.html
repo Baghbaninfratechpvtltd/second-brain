@@ -1,24 +1,33 @@
+// index.html ke script section mein ye change karein:
+
+const BASE = window.location.origin; // Ye apne aap Render ka URL pakad lega
+
 async function sendMsg() {
-  const input = document.getElementById("userInput");
-  const msg = input.value;
-  if(!msg) return;
+  const input = document.getElementById("chatInput");
+  const msg   = input.value.trim();
+  if (!msg) return;
 
   const chatBox = document.getElementById("chatBox");
-  chatBox.innerHTML += `<div class="msg user"><div class="bubble">${msg}</div></div>`;
-  input.value = "";
+  input.value   = "";
 
+  // User bubble
+  chatBox.innerHTML += `<div class="msg user"><div class="bubble">${msg}</div></div>`;
+  
   try {
-    // URL ko dhyan se dekhein: hum relative path use kar rahe hain
-    const res = await fetch("/chat", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ msg: msg }) // Sirf msg bhej rahe hain
+    const r = await fetch(BASE + "/chat", {
+      method:  "POST",
+      headers: {
+        "Content-Type":  "application/json",
+        "Authorization": "Bearer " + token
+      },
+      body: JSON.stringify({ msg, history: chatHistory })
     });
     
-    const data = await res.json();
-    const reply = data.reply || "Error: " + (data.error || "Unknown");
+    const d = await r.json();
+    const reply = d.reply || "Error: " + (d.error || "Unknown error");
 
-    chatBox.innerHTML += `<div class="msg ai"><div class="bubble">${reply}</div></div>`;
+    chatBox.innerHTML += `<div class="msg ai"><div class="bubble">${marked.parse(reply)}</div></div>`;
+    chatHistory.push({ role: "user", text: msg }, { role: "model", text: reply });
     chatBox.scrollTop = chatBox.scrollHeight;
   } catch (e) {
     chatBox.innerHTML += `<div class="msg ai"><div class="bubble">Connection failed!</div></div>`;
