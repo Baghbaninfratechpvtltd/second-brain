@@ -14,9 +14,9 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-const MONGO_URI  = process.env.MONGO_URI  || "YOUR_MONGODB_URI";
-const JWT_SECRET = process.env.JWT_SECRET || "supersecretkey123";
-const GEMINI_KEY = process.env.GEMINI_KEY || "YOUR_GEMINI_API_KEY";
+const MONGO_URI       = process.env.MONGO_URI       || "YOUR_MONGODB_URI";
+const JWT_SECRET      = process.env.JWT_SECRET      || "supersecretkey123";
+const OPENROUTER_KEY  = process.env.OPENROUTER_KEY  || "YOUR_OPENROUTER_KEY";
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
@@ -59,7 +59,6 @@ app.post("/signup", async (req, res) => {
     await User.create({ email, password: hashed });
     res.json({ message: "Account ban gaya ✅" });
   } catch (e) {
-    console.error("Signup error:", e.message);
     res.status(500).json({ error: "Signup fail: " + e.message });
   }
 });
@@ -80,7 +79,6 @@ app.post("/login", async (req, res) => {
     );
     res.json({ token, email: user.email });
   } catch (e) {
-    console.error("Login error:", e.message);
     res.status(500).json({ error: "Login fail: " + e.message });
   }
 });
@@ -118,49 +116,50 @@ app.delete("/notes/:id", authMiddleware, async (req, res) => {
   }
 });
 
-const SYSTEM_PROMPT = `You are a highly intelligent, helpful AI assistant similar to Claude by Anthropic.
-- Give clear, detailed, well-structured answers
-- Use bullet points, numbered lists, headings, code blocks when helpful
-- Be honest, warm, and respectful
-- Remember everything said earlier in this conversation
-- Always respond in the SAME language the user writes in (Hindi, English, or Hinglish)
-You are the AI inside "Second Brain" — a personal notes and knowledge app.`;
-
 app.post("/chat", authMiddleware, async (req, res) => {
   try {
     const { msg, history = [] } = req.body;
     if (!msg)
       return res.status(400).json({ error: "Message chahiye" });
 
-    const contents = [];
-    contents.push({ role: "user",  parts: [{ text: SYSTEM_PROMPT }] });
-    contents.push({ role: "model", parts: [{ text: "Samajh gaya! Main aapka Second Brain assistant hoon!" }] });
+    const messages = [
+      {
+        role: "system",
+        content: `You are a highly intelligent, helpful AI assistant similar to Claude by Anthropic.
+- Give clear, detailed, well-structured answers
+- Use bullet points, numbered lists, headings, code blocks when helpful
+- Be honest, warm, and respectful
+- Remember everything said earlier in this conversation
+- Always respond in the SAME language the user writes in (Hindi, English, or Hinglish)
+You are the AI inside "Second Brain" — a personal notes and knowledge app.`
+      }
+    ];
 
     for (const turn of history) {
-      contents.push({
-        role: turn.role === "user" ? "user" : "model",
-        parts: [{ text: turn.text }]
+      messages.push({
+        role: turn.role === "user" ? "user" : "assistant",
+        content: turn.text
       });
     }
-    contents.push({ role: "user", parts: [{ text: msg }] });
+    messages.push({ role: "user", content: msg });
 
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-8b:generateContent?key=${GEMINI_KEY}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents,
-          generationConfig: { temperature: 0.7, maxOutputTokens: 2048, topP: 0.95 }
-        })
-      }
-    );
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENROUTER_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "meta-llama/llama-3.3-70b-instruct:free",
+        messages
+      })
+    });
 
     const data = await response.json();
     if (data.error)
-      return res.status(500).json({ error: "Gemini: " + data.error.message });
+      return res.status(500).json({ error: "AI: " + data.error.message });
 
-    const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text || "Koi jawab nahi mila.";
+    const reply = data?.choices?.[0]?.message?.content || "Koi jawab nahi mila.";
     res.json({ reply });
 
   } catch (e) {
