@@ -150,7 +150,7 @@ You are the AI inside "Second Brain" — a personal notes and knowledge app.`
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "qwen/qwen3-30b-a3b:free",
+        model: "openrouter/auto",
         messages
       })
     });
