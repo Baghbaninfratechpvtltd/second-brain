@@ -164,6 +164,8 @@
       <div class="tab" id="t5" onclick="showTab('reminder')">🔔 Remind</div>
       <div class="tab" id="t6" onclick="showTab('translate')">🌐 Trans</div>
       <div class="tab" id="t7" onclick="showTab('ocr')">📸 OCR</div>
+      <div class="tab" id="t8" onclick="showTab('news')">📰 News</div>
+      <div class="tab" id="t8" onclick="showTab('news')">📰 News</div>
     </div>
 
     <!-- DASHBOARD -->
@@ -463,8 +465,8 @@ async function login(){
 function logout(){token="";userEmail="";localStorage.removeItem("sb_token");localStorage.removeItem("sb_email");location.reload();}
 
 function showTab(tab){
-  const s={dashboard:"dashSection",notes:"notesSection",chat:"chatSection",tasks:"tasksSection",reminder:"reminderSection",translate:"translateSection",ocr:"ocrSection"};
-  const t={dashboard:"t1",notes:"t2",chat:"t3",tasks:"t4",reminder:"t5",translate:"t6",ocr:"t7"};
+  const s={dashboard:"dashSection",notes:"notesSection",chat:"chatSection",tasks:"tasksSection",reminder:"reminderSection",translate:"translateSection",ocr:"ocrSection",news:"newsSection"};
+  const t={dashboard:"t1",notes:"t2",chat:"t3",tasks:"t4",reminder:"t5",translate:"t6",ocr:"t7",news:"t8"};
   Object.values(s).forEach(x=>document.getElementById(x).style.display="none");
   Object.values(t).forEach(x=>document.getElementById(x).classList.remove("active"));
   document.getElementById(s[tab]).style.display="block";
@@ -543,6 +545,57 @@ async function deleteNote(id){
   catch{showToast("❌ Delete fail");}
 }
 
+
+// ── NEWS
+const NEWS_KEYWORDS = ["aaj","latest","abhi","news","vacancy","result","exam","score","rate","price","today","current","2025","kab","kya hua","breaking"];
+
+function isNewsQuery(msg) {
+  const lower = msg.toLowerCase();
+  return NEWS_KEYWORDS.some(k => lower.includes(k));
+}
+
+async function fetchNewsForChat(query) {
+  try {
+    const r = await fetch(BASE+"/news?q="+encodeURIComponent(query), {
+      headers: {"Authorization":"Bearer "+token}
+    });
+    const d = await r.json();
+    return d.articles || [];
+  } catch { return []; }
+}
+
+async function fetchNews() {
+  const query = document.getElementById("newsQuery").value.trim() || "India";
+  showToast("⏳ News fetch ho rahi hai...");
+  try {
+    const r = await fetch(BASE+"/news?q="+encodeURIComponent(query), {
+      headers: {"Authorization":"Bearer "+token}
+    });
+    const d = await r.json();
+    renderNews(d.articles || []);
+  } catch { showToast("❌ News fetch fail"); }
+}
+
+function quickNews(q) {
+  document.getElementById("newsQuery").value = q;
+  fetchNews();
+}
+
+function renderNews(articles) {
+  const box = document.getElementById("newsList");
+  if (!articles.length) { box.innerHTML = '<div class="empty-state">Koi news nahi mili. Query change karo.</div>'; return; }
+  box.innerHTML = articles.map(a => `
+    <div class="note-item" onclick="window.open('${a.url}','_blank')">
+      <div class="note-content">
+        <div class="note-title">${esc(a.title||'')}</div>
+        <div class="note-body">${esc(a.description||'')}</div>
+        <div class="note-date">📰 ${esc(a.source||'')} · ${a.publishedAt ? new Date(a.publishedAt).toLocaleDateString('hi-IN') : ''}</div>
+      </div>
+      <div style="font-size:1.2rem;flex-shrink:0">→</div>
+    </div>`).join("");
+  showToast("✅ "+ articles.length +" news mili!");
+}
+
 // ── AI CHAT
 async function sendMsg(){
   const input=document.getElementById("chatInput");
@@ -552,10 +605,16 @@ async function sendMsg(){
   chatBox.innerHTML+=`<div class="msg user"><div class="msg-label" style="text-align:right">Aap</div><div class="bubble">${esc(msg)}</div></div>`;
   chatBox.scrollTop=chatBox.scrollHeight;
   const tid="t_"+Date.now();
-  chatBox.innerHTML+=`<div id="${tid}" class="typing">⏳ AI search kar raha hai...</div>`;
+  chatBox.innerHTML+=`<div id="${tid}" class="typing">⏳ AI soch raha hai...</div>`;
   chatBox.scrollTop=chatBox.scrollHeight;
   try{
-    const r=await fetch(BASE+"/chat",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({msg,history:chatHistory})});
+    // News query detect karo
+    let newsContext = [];
+    if(isNewsQuery(msg)) {
+      document.getElementById(tid).textContent = "📰 Latest news fetch ho rahi hai...";
+      newsContext = await fetchNewsForChat(msg);
+    }
+    const r=await fetch(BASE+"/chat",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({msg,history:chatHistory,newsContext})});
     const d=await r.json();
     document.getElementById(tid)?.remove();
     const reply=d.reply||d.error||"Koi jawab nahi.";
