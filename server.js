@@ -150,9 +150,10 @@ You are the AI inside "Second Brain" — a personal notes and knowledge app.`
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        model: "openrouter/auto",
-        messages
-      })
+  model: "openrouter/auto",
+  messages,
+  plugins: [{ id: "web" }]
+})
     });
 
     const data = await response.json();
