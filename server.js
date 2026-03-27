@@ -149,9 +149,10 @@ You are the AI inside "Second Brain" — a personal notes and knowledge app.`
         "Authorization": `Bearer ${OPENROUTER_KEY}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify({
-  model: "openrouter/auto",
+     body: JSON.stringify({
+  model: "mistralai/mistral-small-3.1-24b-instruct:free",
   messages,
+  plugins: [{ id: "web", max_results: 3 }]
 })
     });
 
