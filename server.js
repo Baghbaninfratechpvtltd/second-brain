@@ -14,14 +14,16 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "public", "index.html"));
 });
 
-const MONGO_URI     = process.env.MONGO_URI     || "YOUR_MONGODB_URI";
-const JWT_SECRET    = process.env.JWT_SECRET    || "supersecretkey123";
+const MONGO_URI      = process.env.MONGO_URI      || "YOUR_MONGODB_URI";
+const JWT_SECRET     = process.env.JWT_SECRET     || "supersecretkey123";
 const OPENROUTER_KEY = process.env.OPENROUTER_KEY || "YOUR_OPENROUTER_KEY";
+const NEWS_KEY       = process.env.NEWS_KEY       || "YOUR_NEWS_KEY";
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
   .catch(e => console.log("❌ MongoDB Error:", e.message));
 
+// ── MODELS
 const UserSchema = new mongoose.Schema({
   email:    { type: String, unique: true, required: true },
   password: { type: String, required: true }
@@ -36,6 +38,7 @@ const NoteSchema = new mongoose.Schema({
 });
 const Note = mongoose.model("Note", NoteSchema);
 
+// ── AUTH MIDDLEWARE
 function authMiddleware(req, res, next) {
   const token = req.headers["authorization"]?.split(" ")[1];
   if (!token) return res.status(401).json({ error: "Login karo pehle" });
@@ -47,12 +50,13 @@ function authMiddleware(req, res, next) {
   }
 }
 
+// ── SIGNUP
 app.post("/signup", async (req, res) => {
   try {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: "Email aur password chahiye" });
     const exists = await User.findOne({ email });
-    if (exists) return res.status(400).json({ error: "Email already registered" });
+    if (exists) return res.status(400).json({ error: "Email already registered hai" });
     const hashed = await bcrypt.hash(password, 10);
     await User.create({ email, password: hashed });
     res.json({ message: "Account ban gaya ✅" });
@@ -61,13 +65,14 @@ app.post("/signup", async (req, res) => {
   }
 });
 
+// ── LOGIN
 app.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: "User nahi mila" });
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ error: "Password galat" });
+    if (!match) return res.status(401).json({ error: "Password galat hai" });
     const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
     res.json({ token, email: user.email });
   } catch (e) {
@@ -75,6 +80,7 @@ app.post("/login", async (req, res) => {
   }
 });
 
+// ── NOTES
 app.post("/notes", authMiddleware, async (req, res) => {
   try {
     const { title, body } = req.body;
@@ -106,24 +112,54 @@ app.delete("/notes/:id", authMiddleware, async (req, res) => {
   }
 });
 
-// ── AI CHAT (with web search + image support)
+// ── NEWS API — Latest news fetch karo
+app.get("/news", authMiddleware, async (req, res) => {
+  try {
+    const query = req.query.q || "India";
+    const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&sortBy=publishedAt&pageSize=5&apiKey=${NEWS_KEY}`;
+    const r = await fetch(url);
+    const data = await r.json();
+    if (data.status !== "ok") return res.json({ articles: [] });
+    const articles = data.articles.map(a => ({
+      title: a.title,
+      description: a.description,
+      url: a.url,
+      source: a.source?.name,
+      publishedAt: a.publishedAt
+    }));
+    res.json({ articles });
+  } catch (e) {
+    res.status(500).json({ error: "News fetch fail", articles: [] });
+  }
+});
+
+// ── AI CHAT
 const SYSTEM_PROMPT = `You are a highly intelligent, helpful AI assistant similar to Claude by Anthropic.
 - Give clear, detailed, well-structured answers
-- Use bullet points, numbered lists, headings, code blocks when helpful
+- Use bullet points, numbered lists, headings, code blocks when helpful  
 - Be honest, warm, and respectful
-- Remember everything said earlier in this conversation
+- Remember everything said in this conversation
 - Always respond in the SAME language the user writes in (Hindi, English, or Hinglish)
-- You have access to web search for latest information
+- When news articles are provided, use them to answer latest news questions accurately
 You are the AI inside "Second Brain" — a personal notes, tasks, and knowledge app.`;
 
 app.post("/chat", authMiddleware, async (req, res) => {
   try {
-    const { msg, history = [], image } = req.body;
+    const { msg, history = [], image, newsContext } = req.body;
     if (!msg) return res.status(400).json({ error: "Message chahiye" });
 
-    const messages = [
-      { role: "system", content: SYSTEM_PROMPT }
-    ];
+    const messages = [{ role: "system", content: SYSTEM_PROMPT }];
+
+    // News context inject karo agar available hai
+    if (newsContext && newsContext.length > 0) {
+      const newsText = newsContext.map((a, i) =>
+        `[${i+1}] ${a.title}\n${a.description || ""}\nSource: ${a.source} | ${new Date(a.publishedAt).toLocaleDateString()}`
+      ).join("\n\n");
+      messages.push({
+        role: "system",
+        content: `Latest news articles (use these to answer):\n\n${newsText}`
+      });
+    }
 
     for (const turn of history) {
       messages.push({
@@ -132,7 +168,7 @@ app.post("/chat", authMiddleware, async (req, res) => {
       });
     }
 
-    // Image support (for OCR)
+    // Image support (OCR)
     if (image) {
       messages.push({
         role: "user",
@@ -145,17 +181,9 @@ app.post("/chat", authMiddleware, async (req, res) => {
       messages.push({ role: "user", content: msg });
     }
 
-    const body = {
-      model: image
-        ? "google/gemini-2.0-flash-exp:free"  // vision model for images
-        : "mistralai/mistral-small-3.1-24b-instruct:free",
-      messages
-    };
-
-    // Web search only for text (not image)
-    if (!image) {
-      body.plugins = [{ id: "web", max_results: 3 }];
-    }
+    const model = image
+      ? "meta-llama/llama-3.2-11b-vision-instruct:free"
+      : "openrouter/auto";
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -163,7 +191,7 @@ app.post("/chat", authMiddleware, async (req, res) => {
         "Authorization": `Bearer ${OPENROUTER_KEY}`,
         "Content-Type": "application/json"
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify({ model, messages })
     });
 
     const data = await response.json();
