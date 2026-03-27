@@ -3,933 +3,116 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Second Brain 🧠</title>
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#7c3aed">
+
+  <!-- FIXED META -->
   <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <title>Second Brain 🧠</title>
+
+  <!-- FIXED ICON -->
+  <link rel="icon" href="icon.png">
+  <link rel="manifest" href="manifest.json">
+
+  <meta name="theme-color" content="#7c3aed">
+
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    :root{
-      --bg:#0a0a14;--bg2:#12122a;--bg3:#0e0e20;
-      --border:#2a2a4a;--purple:#7c3aed;--purple2:#6d28d9;
-      --text:#e0e0e0;--text2:#888;--text3:#444;
-      --green:#4ade80;--red:#f87171;--yellow:#fbbf24;
-    }
-    body{font-family:'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-    .topnav{background:var(--bg2);border-bottom:1px solid var(--border);padding:10px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;gap:10px}
-    .brand{font-size:1.1rem;font-weight:700;color:#a78bfa}
-    .nav-right{display:flex;align-items:center;gap:8px}
-    .user-email{font-size:0.75rem;color:var(--text2)}
-    .container{max-width:780px;margin:0 auto;padding:14px}
-    .card{background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:12px}
-    .card-title{font-size:0.92rem;font-weight:600;color:#a78bfa;margin-bottom:12px;display:flex;align-items:center;gap:6px}
-    input,textarea,select{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:10px 12px;color:var(--text);font-size:0.88rem;margin-bottom:8px;outline:none;transition:border-color 0.2s;font-family:inherit}
-    input:focus,textarea:focus,select:focus{border-color:var(--purple)}
-    textarea{resize:vertical;min-height:75px}
-    button{background:var(--purple);color:white;border:none;padding:9px 16px;border-radius:10px;cursor:pointer;font-size:0.86rem;transition:all 0.2s;font-family:inherit;white-space:nowrap}
-    button:hover{background:var(--purple2)}
-    button.secondary{background:#1e1e3f;border:1px solid #3a3a6a;color:var(--text)}
-    button.secondary:hover{background:#2a2a5a}
-    button.danger{background:#7f1d1d}
-    button.danger:hover{background:#991b1b}
-    button.success{background:#14532d;color:var(--green)}
-    button.sm{padding:5px 10px;font-size:0.77rem}
-    button.icon{padding:7px;border-radius:50%;width:34px;height:34px;display:flex;align-items:center;justify-content:center;font-size:0.95rem;flex-shrink:0}
-    button.recording{background:#dc2626;animation:pulse 1s infinite}
-    @keyframes pulse{0%,100%{opacity:1}50%{opacity:0.6}}
-    .tabs{display:flex;gap:4px;margin-bottom:14px;overflow-x:auto;padding-bottom:2px}
-    .tab{flex-shrink:0;padding:8px 10px;text-align:center;background:var(--bg2);border:1px solid var(--border);border-radius:9px;cursor:pointer;transition:all 0.2s;font-size:0.8rem;color:var(--text2)}
-    .tab.active{background:var(--purple);border-color:var(--purple);color:white}
-    #authSection{max-width:390px;margin:50px auto 0}
-    #authMsg{margin-top:8px;font-size:0.82rem;border-radius:8px;padding:7px 11px;display:none}
-    #authMsg.error{background:#2d1515;color:var(--red);display:block}
-    #authMsg.success{background:#14291a;color:var(--green);display:block}
-    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}
-    .stat-box{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px;text-align:center}
-    .stat-num{font-size:1.4rem;font-weight:700;color:#a78bfa}
-    .stat-label{font-size:0.68rem;color:var(--text2);margin-top:1px}
-    .search-bar{display:flex;gap:6px;margin-bottom:10px}
-    .search-bar input{margin-bottom:0;flex:1}
-    .note-item{background:var(--bg3);border:1px solid var(--border);border-radius:11px;padding:11px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:flex-start;gap:7px;cursor:pointer;transition:border-color 0.2s}
-    .note-item:hover{border-color:var(--purple)}
-    .note-content{flex:1;min-width:0}
-    .note-title{font-size:0.88rem;color:#c4b5fd;margin-bottom:2px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .note-body{font-size:0.76rem;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .note-date{font-size:0.68rem;color:#333;margin-top:2px}
-    .note-actions{display:flex;gap:3px;flex-shrink:0}
-    .empty-state{text-align:center;padding:24px;color:var(--text3);font-size:0.86rem}
-    .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:200;align-items:center;justify-content:center;padding:14px}
-    .modal-overlay.open{display:flex}
-    .modal{background:var(--bg2);border:1px solid #3a3a6a;border-radius:14px;padding:20px;max-width:560px;width:100%;max-height:85vh;overflow-y:auto}
-    .modal h3{color:#a78bfa;margin-bottom:8px;font-size:0.98rem}
-    .modal-body-text{color:#ccc;line-height:1.7;white-space:pre-wrap;font-size:0.88rem}
-    .modal-btns{display:flex;gap:6px;margin-top:12px;justify-content:flex-end;flex-wrap:wrap}
-    #chatBox{background:var(--bg);border:1px solid var(--border);border-radius:11px;height:340px;overflow-y:auto;padding:12px;margin-bottom:8px}
-    .msg{margin-bottom:12px}
-    .msg-label{font-size:0.68rem;color:var(--text3);margin-bottom:3px}
-    .msg.user{text-align:right}
-    .msg.user .bubble{background:#4c1d95;padding:8px 12px;border-radius:14px 14px 3px 14px;display:inline-block;max-width:80%;line-height:1.5;text-align:left}
-    .msg.ai .bubble{background:#1a1a35;border:1px solid var(--border);padding:10px 13px;border-radius:3px 14px 14px 14px;display:inline-block;max-width:92%;line-height:1.6;color:#ddd6fe}
-    .ai-md p{margin-bottom:6px}.ai-md ul,.ai-md ol{margin:4px 0 4px 15px}.ai-md li{margin-bottom:2px}
-    .ai-md h1,.ai-md h2,.ai-md h3{color:#c4b5fd;margin:7px 0 4px}
-    .ai-md code{background:#0d0d1f;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:0.8rem;color:#86efac}
-    .ai-md pre{background:#0d0d1f;padding:9px;border-radius:7px;overflow-x:auto;margin:5px 0;border:1px solid var(--border)}
-    .ai-md pre code{background:none;padding:0}
-    .ai-md strong{color:#e2d9f3}
-    .chat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-    .chat-input-row{display:flex;gap:6px;align-items:center}
-    .chat-input-row input{margin-bottom:0;flex:1}
-    .typing{color:var(--text3);font-style:italic;font-size:0.78rem;padding:3px 0}
-    .reminder-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:7px;display:flex;justify-content:space-between;align-items:center;gap:7px}
-    .reminder-info{flex:1}
-    .reminder-title{font-size:0.86rem;color:#c4b5fd;font-weight:600}
-    .reminder-time{font-size:0.73rem;color:var(--text2);margin-top:1px}
-    .badge{font-size:0.68rem;padding:2px 7px;border-radius:20px}
-    .badge.pending{background:#1e1e3f;color:#a78bfa}
-    .badge.done{background:#14291a;color:var(--green)}
-    .trans-box{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-    .trans-panel{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:11px}
-    .trans-label{font-size:0.73rem;color:var(--text2);margin-bottom:5px;font-weight:600}
-    .trans-out{min-height:90px;color:var(--text);font-size:0.86rem;line-height:1.6;white-space:pre-wrap}
-    .task-item{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:6px;display:flex;align-items:flex-start;gap:8px}
-    .task-item input[type=checkbox]{width:18px;height:18px;margin:0;flex-shrink:0;cursor:pointer;accent-color:var(--purple)}
-    .task-text{font-size:0.86rem;color:var(--text);line-height:1.4;flex:1}
-    .task-text.done{text-decoration:line-through;color:var(--text3)}
-    .task-time{font-size:0.7rem;color:#a78bfa;margin-top:2px}
-    .ocr-drop{border:2px dashed var(--border);border-radius:12px;padding:28px;text-align:center;cursor:pointer;transition:border-color 0.2s;margin-bottom:10px}
-    .ocr-drop:hover{border-color:var(--purple)}
-    .ocr-drop.dragover{border-color:var(--purple);background:#1a1a35}
-    .ocr-result{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;min-height:80px;font-size:0.86rem;line-height:1.6;white-space:pre-wrap;color:var(--text)}
-    .progress-bar{height:4px;background:var(--border);border-radius:2px;margin:8px 0;overflow:hidden}
-    .progress-fill{height:100%;background:var(--purple);border-radius:2px;transition:width 0.3s;width:0%}
-    #installBanner{display:none;background:linear-gradient(135deg,#3b1d8a,#1d1d5e);border:1px solid #5b3fa0;border-radius:11px;padding:11px 14px;margin-bottom:12px;align-items:center;justify-content:space-between;gap:8px}
-    #installBanner.show{display:flex}
-    #installBanner p{font-size:0.83rem;color:#c4b5fd}
-    .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1e1e3f;border:1px solid var(--purple);color:#c4b5fd;padding:9px 18px;border-radius:20px;font-size:0.82rem;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
-    .toast.show{opacity:1}
-    .row{display:flex;gap:6px;align-items:center}
-    .row input,.row select{margin-bottom:0;flex:1}
-    @media(max-width:520px){
-      .trans-box{grid-template-columns:1fr}
-      .stats-grid{grid-template-columns:repeat(2,1fr)}
-      .container{padding:10px}
-      #chatBox{height:260px}
-    }
+    body{font-family:sans-serif;background:#0a0a14;color:white}
+    .tab{padding:10px;background:#222;margin:5px;cursor:pointer;display:inline-block}
+    .tab.active{background:purple}
+    .section{display:none;padding:20px}
   </style>
 </head>
+
 <body>
 
-<div class="topnav" id="topnav" style="display:none">
-  <div class="brand">🧠 Second Brain</div>
-  <div class="nav-right">
-    <span class="user-email" id="userLabel"></span>
-    <button class="secondary sm" onclick="logout()">Logout</button>
-  </div>
+<!-- TABS -->
+<div>
+  <div class="tab active" id="t1" onclick="showTab('dashboard')">Home</div>
+  <div class="tab" id="t2" onclick="showTab('notes')">Notes</div>
+  <div class="tab" id="t3" onclick="showTab('chat')">AI</div>
+  <div class="tab" id="t4" onclick="showTab('tasks')">Tasks</div>
+  <div class="tab" id="t5" onclick="showTab('reminder')">Reminder</div>
+  <div class="tab" id="t6" onclick="showTab('translate')">Translate</div>
+  <div class="tab" id="t7" onclick="showTab('ocr')">OCR</div>
+  <div class="tab" id="t8" onclick="showTab('news')">News</div>
 </div>
 
-<div class="container">
-  <div id="installBanner">
-    <p>📱 Phone pe install karein!</p>
-    <button class="sm" onclick="installPWA()">Install ↓</button>
-  </div>
+<!-- SECTIONS -->
+<div id="dashSection" class="section" style="display:block">🏠 Home Section</div>
+<div id="notesSection" class="section">📝 Notes Section</div>
+<div id="chatSection" class="section">🤖 AI Section</div>
+<div id="tasksSection" class="section">✅ Tasks Section</div>
+<div id="reminderSection" class="section">🔔 Reminder Section</div>
+<div id="translateSection" class="section">🌐 Translate Section</div>
+<div id="ocrSection" class="section">📸 OCR Section</div>
 
-  <!-- AUTH -->
-  <div id="authSection">
-    <div style="text-align:center;margin-bottom:20px">
-      <div style="font-size:2.6rem">🧠</div>
-      <h1 style="color:#a78bfa;font-size:1.4rem;margin:5px 0 3px">Second Brain</h1>
-      <p style="color:var(--text2);font-size:0.82rem">Notes · AI · Reminders · Translator · OCR · Tasks</p>
-    </div>
-    <div class="card">
-      <div class="tabs" style="margin-bottom:12px">
-        <div class="tab active" id="loginTabBtn" onclick="switchAuth('login')">Login</div>
-        <div class="tab" id="signupTabBtn" onclick="switchAuth('signup')">Signup</div>
-      </div>
-      <input id="authEmail" type="email" placeholder="Email" autocomplete="email">
-      <input id="authPass" type="password" placeholder="Password" autocomplete="current-password"
-             onkeydown="if(event.key==='Enter')document.getElementById('authBtn').click()">
-      <button id="authBtn" onclick="login()" style="width:100%">Login →</button>
-      <div id="authMsg"></div>
-    </div>
-  </div>
+<!-- ✅ FIXED NEWS SECTION -->
+<div id="newsSection" class="section">
+  <h2>📰 Latest News</h2>
 
-  <!-- MAIN -->
-  <div id="mainApp" style="display:none">
-    <div class="tabs">
-      <div class="tab active" id="t1" onclick="showTab('dashboard')">🏠 Home</div>
-      <div class="tab" id="t2" onclick="showTab('notes')">📝 Notes</div>
-      <div class="tab" id="t3" onclick="showTab('chat')">🤖 AI</div>
-      <div class="tab" id="t4" onclick="showTab('tasks')">✅ Tasks</div>
-      <div class="tab" id="t5" onclick="showTab('reminder')">🔔 Remind</div>
-      <div class="tab" id="t6" onclick="showTab('translate')">🌐 Trans</div>
-      <div class="tab" id="t7" onclick="showTab('ocr')">📸 OCR</div>
-      <div class="tab" id="t8" onclick="showTab('news')">📰 News</div>
-      <div class="tab" id="t8" onclick="showTab('news')">📰 News</div>
-    </div>
+  <input id="newsQuery" placeholder="Search news..." />
+  <button onclick="fetchNews()">Search</button>
 
-    <!-- DASHBOARD -->
-    <div id="dashSection">
-      <div class="stats-grid">
-        <div class="stat-box"><div class="stat-num" id="statNotes">0</div><div class="stat-label">📝 Notes</div></div>
-        <div class="stat-box"><div class="stat-num" id="statTasks">0</div><div class="stat-label">✅ Tasks</div></div>
-        <div class="stat-box"><div class="stat-num" id="statReminders">0</div><div class="stat-label">🔔 Remind</div></div>
-        <div class="stat-box"><div class="stat-num" id="statChats">0</div><div class="stat-label">💬 Chats</div></div>
-      </div>
-      <div class="card">
-        <div class="card-title">⚡ Quick Actions</div>
-        <div style="display:flex;gap:7px;flex-wrap:wrap">
-          <button onclick="showTab('notes')">📝 Note</button>
-          <button class="secondary" onclick="showTab('chat')">🤖 AI Chat</button>
-          <button class="secondary" onclick="showTab('tasks')">✅ Task Plan</button>
-          <button class="secondary" onclick="showTab('reminder')">🔔 Reminder</button>
-          <button class="secondary" onclick="showTab('ocr')">📸 OCR</button>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-title">📌 Recent Notes</div>
-        <div id="recentNotes"><div class="empty-state">Koi note nahi</div></div>
-      </div>
-      <div class="card">
-        <div class="card-title">⏰ Upcoming Reminders</div>
-        <div id="upcomingReminders"><div class="empty-state">Koi reminder nahi</div></div>
-      </div>
-    </div>
-
-    <!-- NOTES -->
-    <div id="notesSection" style="display:none">
-      <div class="card">
-        <div class="card-title">📝 Naya Note</div>
-        <input id="noteTitle" placeholder="Title">
-        <div class="row" style="margin-bottom:8px">
-          <input id="noteTag" placeholder="Tag (kaam, padhai, idea...)" style="margin-bottom:0">
-          <button class="icon secondary" id="voiceNoteBtn" onclick="startVoice('note')">🎤</button>
-        </div>
-        <textarea id="noteBody" placeholder="Likho ya mic se bolo..."></textarea>
-        <button onclick="saveNote()">Save ✅</button>
-      </div>
-      <div class="card">
-        <div class="card-title">📚 Saare Notes</div>
-        <div class="search-bar">
-          <input id="searchInput" placeholder="🔍 Search..." oninput="filterNotes()">
-          <button class="secondary sm" onclick="clearSearch()">✕</button>
-        </div>
-        <div id="notesList"></div>
-      </div>
-    </div>
-
-    <!-- AI CHAT -->
-    <div id="chatSection" style="display:none">
-      <div class="card">
-        <div class="chat-top">
-          <div class="card-title" style="margin-bottom:0">🤖 AI Chat <span style="font-size:0.65rem;color:var(--green);font-weight:400">● Live Web Search</span></div>
-          <div style="display:flex;gap:5px">
-            <button class="icon secondary" id="voiceChatBtn" onclick="startVoice('chat')">🎤</button>
-            <button class="secondary sm" onclick="clearChat()">🗑</button>
-          </div>
-        </div>
-        <div id="chatBox">
-          <div class="msg ai">
-            <div class="msg-label">AI 🤖</div>
-            <div class="bubble ai-md">Namaste! 😊 Main aapka Second Brain AI assistant hoon.<br><br>
-            ✨ Ab main <b>latest 2025 news</b> bhi bata sakta hoon!<br>
-            🎤 Voice se bhi baat kar sakte ho!</div>
-          </div>
-        </div>
-        <div class="chat-input-row">
-          <input id="chatInput" placeholder="Kuch bhi poochho (text ya 🎤)..."
-                 onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}">
-          <button onclick="sendMsg()">➤</button>
-        </div>
-        <div style="margin-top:7px;display:flex;gap:5px;flex-wrap:wrap">
-          <button class="secondary sm" onclick="speakLast()">🔊 Sunao</button>
-          <button class="secondary sm" onclick="stopSpeaking()">⏹ Stop</button>
-          <button class="secondary sm" onclick="saveNoteFromChat()">📝 Note Banao</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- TASKS (AI Daily Planner) -->
-    <div id="tasksSection" style="display:none">
-      <div class="card">
-        <div class="card-title">🎯 AI Daily Task Planner</div>
-        <textarea id="taskGoal" placeholder="Batao aaj kya karna hai? AI aapke liye plan banayega... (jaise: Exam ki taiyari karni hai, office ka kaam, exercise routine)" style="min-height:70px"></textarea>
-        <div class="row" style="margin-bottom:8px">
-          <select id="taskDuration" style="margin-bottom:0">
-            <option value="4">4 Ghante</option>
-            <option value="8" selected>8 Ghante (Full Day)</option>
-            <option value="2">2 Ghante</option>
-            <option value="1">1 Ghanta</option>
-          </select>
-          <button class="icon secondary" onclick="startVoice('task')">🎤</button>
-        </div>
-        <button onclick="generateTaskPlan()" style="width:100%">🤖 AI se Plan Banwao</button>
-        <div class="progress-bar"><div class="progress-fill" id="taskProgress"></div></div>
-      </div>
-      <div class="card" id="taskListCard" style="display:none">
-        <div class="card-title">📋 Aaj Ka Plan</div>
-        <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-          <button class="secondary sm" onclick="checkAllTasks()">✅ Sab Done</button>
-          <button class="secondary sm" onclick="clearTasks()">🗑 Clear</button>
-          <button class="secondary sm" onclick="saveTasksAsNote()">📝 Note Save</button>
-        </div>
-        <div id="taskList"></div>
-      </div>
-    </div>
-
-    <!-- REMINDER -->
-    <div id="reminderSection" style="display:none">
-      <div class="card">
-        <div class="card-title">🔔 Naya Reminder</div>
-        <div class="row" style="margin-bottom:8px">
-          <input id="remTitle" placeholder="Kisliye reminder? (Meeting, Dawai, etc.)" style="margin-bottom:0">
-          <button class="icon secondary" id="voiceReminderBtn" onclick="startVoice('reminder')">🎤</button>
-        </div>
-        <input id="remDateTime" type="datetime-local" style="margin-bottom:8px">
-        <select id="remRepeat" style="margin-bottom:8px">
-          <option value="once">Ek baar</option>
-          <option value="daily">Roz</option>
-          <option value="weekly">Har hafte</option>
-        </select>
-        <button onclick="addReminder()" style="width:100%">Set Reminder 🔔</button>
-        <p style="font-size:0.72rem;color:var(--text2);margin-top:7px">⚠️ 15 min pehle aur time pe voice + browser notification milega</p>
-      </div>
-      <div class="card">
-        <div class="card-title">📋 Aapke Reminders</div>
-        <div id="reminderList"></div>
-      </div>
-    </div>
-
-    <!-- TRANSLATE -->
-    <div id="translateSection" style="display:none">
-      <div class="card">
-        <div class="card-title">🌐 Translator</div>
-        <div class="row" style="margin-bottom:10px">
-          <select id="transFrom" style="margin-bottom:0" onchange="updateTransLabels()">
-            <option value="hi">Hindi → English</option>
-            <option value="en">English → Hindi</option>
-            <option value="auto">Auto Detect</option>
-          </select>
-          <button class="icon secondary" onclick="swapLang()">⇄</button>
-          <button class="icon secondary" id="voiceTransBtn" onclick="startVoice('trans')">🎤</button>
-        </div>
-        <div class="trans-box">
-          <div class="trans-panel">
-            <div class="trans-label" id="fromLabel">Hindi (Input)</div>
-            <textarea id="transInput" placeholder="Yahan likhein..." style="min-height:100px;margin-bottom:5px" oninput="autoTranslate()"></textarea>
-          </div>
-          <div class="trans-panel">
-            <div class="trans-label" id="toLabel">English (Output)</div>
-            <div class="trans-out" id="transOutput">Translation yahan aayega...</div>
-            <div style="display:flex;gap:5px;margin-top:8px;flex-wrap:wrap">
-              <button class="secondary sm" onclick="copyTrans()">📋 Copy</button>
-              <button class="secondary sm" onclick="speakTrans()">🔊 Sunao</button>
-              <button class="secondary sm" onclick="saveTransAsNote()">📝 Note</button>
-            </div>
-          </div>
-        </div>
-        <button onclick="doTranslate()" style="width:100%;margin-top:8px">🌐 Translate</button>
-      </div>
-    </div>
-
-    <!-- OCR -->
-    <div id="ocrSection" style="display:none">
-      <div class="card">
-        <div class="card-title">📸 Image se Text (OCR) + PDF Summary</div>
-
-        <!-- Image OCR -->
-        <div style="margin-bottom:14px">
-          <p style="font-size:0.82rem;color:var(--text2);margin-bottom:8px">📷 Image upload karo — AI text nikaalega</p>
-          <div class="ocr-drop" id="ocrDrop" onclick="document.getElementById('ocrFile').click()"
-               ondragover="event.preventDefault();this.classList.add('dragover')"
-               ondragleave="this.classList.remove('dragover')"
-               ondrop="handleOCRDrop(event)">
-            <div style="font-size:2rem;margin-bottom:6px">📸</div>
-            <p style="font-size:0.84rem;color:var(--text2)">Click karo ya image drag karo</p>
-            <p style="font-size:0.72rem;color:var(--text3);margin-top:3px">JPG, PNG, WEBP supported</p>
-          </div>
-          <input type="file" id="ocrFile" accept="image/*" style="display:none" onchange="handleOCRFile(event)">
-          <img id="ocrPreview" style="display:none;width:100%;max-height:180px;object-fit:contain;border-radius:8px;margin-bottom:8px;border:1px solid var(--border)">
-          <button onclick="doOCR()" id="ocrBtn" style="width:100%;display:none">📸 Text Nikalo</button>
-        </div>
-
-        <!-- PDF Summary -->
-        <div style="border-top:1px solid var(--border);padding-top:14px;margin-bottom:14px">
-          <p style="font-size:0.82rem;color:var(--text2);margin-bottom:8px">📄 PDF ya Document ka text paste karo — AI summary banayega</p>
-          <textarea id="pdfText" placeholder="PDF ka text yahan paste karo... (Copy karke paste karo)" style="min-height:90px"></textarea>
-          <div class="row" style="margin-bottom:8px">
-            <select id="summaryType" style="margin-bottom:0">
-              <option value="short">Short Summary (3-4 lines)</option>
-              <option value="detailed">Detailed Summary</option>
-              <option value="bullets">Bullet Points</option>
-              <option value="hindi">Hindi mein Summary</option>
-            </select>
-          </div>
-          <button onclick="doPDFSummary()" style="width:100%">📄 Summary Banao</button>
-        </div>
-
-        <!-- Result -->
-        <div id="ocrResultSection" style="display:none">
-          <div class="card-title" style="margin-bottom:8px">📋 Result</div>
-          <div class="ocr-result" id="ocrResult"></div>
-          <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
-            <button class="secondary sm" onclick="copyOCR()">📋 Copy</button>
-            <button class="secondary sm" onclick="speakText(document.getElementById('ocrResult').textContent)">🔊 Sunao</button>
-            <button class="secondary sm" onclick="saveOCRAsNote()">📝 Note Save</button>
-          </div>
-        </div>
-        <div class="progress-bar"><div class="progress-fill" id="ocrProgress"></div></div>
-      </div>
-    </div>
-
-  </div>
+  <div id="newsList">Search karke news dekho</div>
 </div>
-
-<!-- Note Modal -->
-<div class="modal-overlay" id="noteModal" onclick="if(event.target===this)closeModal()">
-  <div class="modal">
-    <h3 id="modalTitle"></h3>
-    <div class="modal-body-text" id="modalBody"></div>
-    <div class="modal-btns">
-      <button class="secondary sm" onclick="speakText(document.getElementById('modalBody').textContent)">🔊</button>
-      <button class="secondary sm" onclick="closeModal()">✕</button>
-      <button class="danger sm" id="modalDeleteBtn">🗑 Delete</button>
-    </div>
-  </div>
-</div>
-
-<div class="toast" id="toast"></div>
 
 <script>
-const BASE = "https://second-brain-98s0.onrender.com";
-let token = localStorage.getItem("sb_token")||"";
-let userEmail = localStorage.getItem("sb_email")||"";
-let chatHistory=[], allNotes=[], tasks=[], deferredPrompt=null;
-let isRecording=false, recognition=null, voiceTarget=null, lastAIReply="", chatCount=0;
-let reminders=JSON.parse(localStorage.getItem("sb_reminders")||"[]");
-let ocrImageData=null, transTimeout=null;
 
-window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;document.getElementById("installBanner").classList.add("show");});
-async function installPWA(){if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;document.getElementById("installBanner").classList.remove("show");deferredPrompt=null;}
-
-if(token) showApp();
-requestNotificationPermission();
-startReminderChecker();
-
-function showApp(){
-  document.getElementById("authSection").style.display="none";
-  document.getElementById("mainApp").style.display="block";
-  document.getElementById("topnav").style.display="flex";
-  document.getElementById("userLabel").textContent=userEmail;
-  loadNotes(); renderReminders(); updateStats();
-}
-
-function switchAuth(mode){
-  const isLogin=mode==="login";
-  document.getElementById("loginTabBtn").classList.toggle("active",isLogin);
-  document.getElementById("signupTabBtn").classList.toggle("active",!isLogin);
-  document.getElementById("authBtn").textContent=isLogin?"Login →":"Account Banao →";
-  document.getElementById("authBtn").onclick=isLogin?login:signup;
-  setMsg("","");
-}
-
-function setMsg(msg,type){const el=document.getElementById("authMsg");el.textContent=msg;el.className=msg?type:"";}
-
-async function signup(){
-  const email=document.getElementById("authEmail").value.trim();
-  const password=document.getElementById("authPass").value;
-  if(!email||!password)return setMsg("❌ Email aur password chahiye!","error");
-  try{
-    const r=await fetch(BASE+"/signup",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
-    const d=await r.json();
-    if(d.error)return setMsg("❌ "+d.error,"error");
-    setMsg("✅ Account ban gaya! Ab login karein.","success");
-    switchAuth("login");
-  }catch{setMsg("❌ Server se connect nahi hua","error");}
-}
-
-async function login(){
-  const email=document.getElementById("authEmail").value.trim();
-  const password=document.getElementById("authPass").value;
-  if(!email||!password)return setMsg("❌ Email aur password chahiye!","error");
-  try{
-    const r=await fetch(BASE+"/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});
-    const d=await r.json();
-    if(d.error)return setMsg("❌ "+d.error,"error");
-    token=d.token;userEmail=d.email;
-    localStorage.setItem("sb_token",token);localStorage.setItem("sb_email",userEmail);
-    showApp();
-  }catch{setMsg("❌ Server se connect nahi hua","error");}
-}
-
-function logout(){token="";userEmail="";localStorage.removeItem("sb_token");localStorage.removeItem("sb_email");location.reload();}
-
+// ✅ FIXED SAFE showTab
 function showTab(tab){
-  const s={dashboard:"dashSection",notes:"notesSection",chat:"chatSection",tasks:"tasksSection",reminder:"reminderSection",translate:"translateSection",ocr:"ocrSection",news:"newsSection"};
-  const t={dashboard:"t1",notes:"t2",chat:"t3",tasks:"t4",reminder:"t5",translate:"t6",ocr:"t7",news:"t8"};
-  Object.values(s).forEach(x=>document.getElementById(x).style.display="none");
-  Object.values(t).forEach(x=>document.getElementById(x).classList.remove("active"));
-  document.getElementById(s[tab]).style.display="block";
-  document.getElementById(t[tab]).classList.add("active");
-}
 
-// ── NOTES
-async function saveNote(){
-  const title=document.getElementById("noteTitle").value.trim();
-  const body=document.getElementById("noteBody").value.trim();
-  const tag=document.getElementById("noteTag").value.trim();
-  if(!title)return showToast("❌ Title chahiye!");
-  try{
-    const r=await fetch(BASE+"/notes",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({title,body:body+(tag?" ["+tag+"]":"")})});
-    const d=await r.json();
-    if(d.error)return showToast("❌ "+d.error);
-    document.getElementById("noteTitle").value="";
-    document.getElementById("noteBody").value="";
-    document.getElementById("noteTag").value="";
-    showToast("✅ Note saved!");loadNotes();
-  }catch{showToast("❌ Save fail");}
-}
-
-async function loadNotes(){
-  try{
-    const r=await fetch(BASE+"/notes",{headers:{"Authorization":"Bearer "+token}});
-    allNotes=await r.json();
-    if(!Array.isArray(allNotes))allNotes=[];
-    renderNotes(allNotes);renderRecentNotes();updateStats();
-  }catch{}
-}
-
-function renderNotes(notes){
-  const box=document.getElementById("notesList");
-  if(!notes.length){box.innerHTML='<div class="empty-state">Koi note nahi</div>';return;}
-  box.innerHTML=notes.map(n=>`
-    <div class="note-item" onclick="openNote('${n._id}')">
-      <div class="note-content">
-        <div class="note-title">${esc(n.title)}</div>
-        ${n.body?`<div class="note-body">${esc(n.body)}</div>`:""}
-        <div class="note-date">${new Date(n.createdAt).toLocaleDateString('hi-IN')}</div>
-      </div>
-      <div class="note-actions">
-        <button class="secondary sm" onclick="event.stopPropagation();speakText('${esc(n.title)}')">🔊</button>
-        <button class="danger sm" onclick="event.stopPropagation();deleteNote('${n._id}')">🗑</button>
-      </div>
-    </div>`).join("");
-}
-
-function renderRecentNotes(){
-  const box=document.getElementById("recentNotes");
-  const r=allNotes.slice(0,3);
-  if(!r.length){box.innerHTML='<div class="empty-state">Koi note nahi</div>';return;}
-  box.innerHTML=r.map(n=>`<div class="note-item" onclick="showTab('notes');openNote('${n._id}')"><div class="note-content"><div class="note-title">${esc(n.title)}</div><div class="note-body">${esc(n.body||'')}</div></div></div>`).join("");
-}
-
-function filterNotes(){
-  const q=document.getElementById("searchInput").value.toLowerCase();
-  if(!q){renderNotes(allNotes);return;}
-  renderNotes(allNotes.filter(n=>n.title.toLowerCase().includes(q)||(n.body&&n.body.toLowerCase().includes(q))));
-}
-function clearSearch(){document.getElementById("searchInput").value="";renderNotes(allNotes);}
-
-function openNote(id){
-  const n=allNotes.find(x=>x._id===id);if(!n)return;
-  document.getElementById("modalTitle").textContent=n.title;
-  document.getElementById("modalBody").textContent=n.body||"(Koi content nahi)";
-  document.getElementById("modalDeleteBtn").onclick=()=>{deleteNote(id);closeModal();};
-  document.getElementById("noteModal").classList.add("open");
-}
-function closeModal(){document.getElementById("noteModal").classList.remove("open");}
-
-async function deleteNote(id){
-  if(!confirm("Delete karna hai?"))return;
-  try{await fetch(BASE+"/notes/"+id,{method:"DELETE",headers:{"Authorization":"Bearer "+token}});showToast("🗑 Deleted!");loadNotes();}
-  catch{showToast("❌ Delete fail");}
-}
-
-
-// ── NEWS
-const NEWS_KEYWORDS = ["aaj","latest","abhi","news","vacancy","result","exam","score","rate","price","today","current","2025","kab","kya hua","breaking"];
-
-function isNewsQuery(msg) {
-  const lower = msg.toLowerCase();
-  return NEWS_KEYWORDS.some(k => lower.includes(k));
-}
-
-async function fetchNewsForChat(query) {
-  try {
-    const r = await fetch(BASE+"/news?q="+encodeURIComponent(query), {
-      headers: {"Authorization":"Bearer "+token}
-    });
-    const d = await r.json();
-    return d.articles || [];
-  } catch { return []; }
-}
-
-async function fetchNews() {
-  const query = document.getElementById("newsQuery").value.trim() || "India";
-  showToast("⏳ News fetch ho rahi hai...");
-  try {
-    const r = await fetch(BASE+"/news?q="+encodeURIComponent(query), {
-      headers: {"Authorization":"Bearer "+token}
-    });
-    const d = await r.json();
-    renderNews(d.articles || []);
-  } catch { showToast("❌ News fetch fail"); }
-}
-
-function quickNews(q) {
-  document.getElementById("newsQuery").value = q;
-  fetchNews();
-}
-
-function renderNews(articles) {
-  const box = document.getElementById("newsList");
-  if (!articles.length) { box.innerHTML = '<div class="empty-state">Koi news nahi mili. Query change karo.</div>'; return; }
-  box.innerHTML = articles.map(a => `
-    <div class="note-item" onclick="window.open('${a.url}','_blank')">
-      <div class="note-content">
-        <div class="note-title">${esc(a.title||'')}</div>
-        <div class="note-body">${esc(a.description||'')}</div>
-        <div class="note-date">📰 ${esc(a.source||'')} · ${a.publishedAt ? new Date(a.publishedAt).toLocaleDateString('hi-IN') : ''}</div>
-      </div>
-      <div style="font-size:1.2rem;flex-shrink:0">→</div>
-    </div>`).join("");
-  showToast("✅ "+ articles.length +" news mili!");
-}
-
-// ── AI CHAT
-async function sendMsg(){
-  const input=document.getElementById("chatInput");
-  const msg=input.value.trim();if(!msg)return;
-  const chatBox=document.getElementById("chatBox");
-  input.value="";chatCount++;updateStats();
-  chatBox.innerHTML+=`<div class="msg user"><div class="msg-label" style="text-align:right">Aap</div><div class="bubble">${esc(msg)}</div></div>`;
-  chatBox.scrollTop=chatBox.scrollHeight;
-  const tid="t_"+Date.now();
-  chatBox.innerHTML+=`<div id="${tid}" class="typing">⏳ AI soch raha hai...</div>`;
-  chatBox.scrollTop=chatBox.scrollHeight;
-  try{
-    // News query detect karo
-    let newsContext = [];
-    if(isNewsQuery(msg)) {
-      document.getElementById(tid).textContent = "📰 Latest news fetch ho rahi hai...";
-      newsContext = await fetchNewsForChat(msg);
-    }
-    const r=await fetch(BASE+"/chat",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({msg,history:chatHistory,newsContext})});
-    const d=await r.json();
-    document.getElementById(tid)?.remove();
-    const reply=d.reply||d.error||"Koi jawab nahi.";
-    lastAIReply=reply;
-    chatHistory.push({role:"user",text:msg});
-    chatHistory.push({role:"model",text:reply});
-    if(chatHistory.length>20)chatHistory=chatHistory.slice(-20);
-    const html=typeof marked!=="undefined"?marked.parse(reply):esc(reply);
-    chatBox.innerHTML+=`<div class="msg ai"><div class="msg-label">AI 🤖</div><div class="bubble ai-md">${html}</div></div>`;
-  }catch{
-    document.getElementById(tid)?.remove();
-    chatBox.innerHTML+=`<div class="msg ai"><div class="bubble" style="color:var(--red)">❌ Connection fail</div></div>`;
-  }
-  chatBox.scrollTop=chatBox.scrollHeight;
-}
-
-function clearChat(){chatHistory=[];lastAIReply="";document.getElementById("chatBox").innerHTML=`<div class="msg ai"><div class="msg-label">AI 🤖</div><div class="bubble ai-md">Chat clear! 😊</div></div>`;}
-function speakLast(){if(lastAIReply)speakText(lastAIReply);else showToast("Pehle kuch poochho!");}
-
-function saveNoteFromChat(){
-  if(!lastAIReply)return showToast("Pehle AI se kuch poochho!");
-  document.getElementById("noteTitle").value="AI Chat - "+new Date().toLocaleDateString();
-  document.getElementById("noteBody").value=lastAIReply.replace(/<[^>]*>/g,"");
-  showTab("notes");showToast("📝 Note mein copy ho gaya!");
-}
-
-// ── AI TASK PLANNER
-async function generateTaskPlan(){
-  const goal=document.getElementById("taskGoal").value.trim();
-  const hours=document.getElementById("taskDuration").value;
-  if(!goal)return showToast("❌ Pehle batao kya karna hai!");
-  setProgress("taskProgress",30);
-  showToast("⏳ AI plan bana raha hai...");
-  const prompt=`Create a detailed ${hours}-hour daily task schedule for: "${goal}"
-
-Format EXACTLY like this (JSON array):
-[
-  {"time":"9:00 AM","task":"Task description here","duration":"30 min"},
-  {"time":"9:30 AM","task":"Another task","duration":"45 min"}
-]
-
-Make it realistic, practical and motivating. Include breaks. Return ONLY the JSON array, nothing else.`;
-  try{
-    const r=await fetch(BASE+"/chat",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({msg:prompt,history:[]})});
-    const d=await r.json();
-    setProgress("taskProgress",80);
-    let reply=d.reply||"";
-    reply=reply.replace(/```json|```/g,"").trim();
-    let parsed=[];
-    try{parsed=JSON.parse(reply);}
-    catch{
-      const lines=reply.split("\n").filter(l=>l.trim());
-      parsed=lines.map((l,i)=>({time:`${9+i}:00`,task:l.replace(/^[-*•\d.]+\s*/,""),duration:"30 min"}));
-    }
-    tasks=parsed.map((t,i)=>({...t,id:i,done:false}));
-    renderTasks();
-    setProgress("taskProgress",100);
-    document.getElementById("taskListCard").style.display="block";
-    showToast("✅ Plan ready!");
-    setTimeout(()=>setProgress("taskProgress",0),2000);
-  }catch{showToast("❌ Plan generate nahi hua");setProgress("taskProgress",0);}
-}
-
-function renderTasks(){
-  const box=document.getElementById("taskList");
-  if(!tasks.length){box.innerHTML='<div class="empty-state">Koi task nahi</div>';return;}
-  box.innerHTML=tasks.map(t=>`
-    <div class="task-item">
-      <input type="checkbox" ${t.done?"checked":""} onchange="toggleTask(${t.id})">
-      <div>
-        <div class="task-text ${t.done?'done':''}">${esc(t.task)}</div>
-        <div class="task-time">⏰ ${esc(t.time)} · ${esc(t.duration)}</div>
-      </div>
-    </div>`).join("");
-  updateStats();
-}
-
-function toggleTask(id){const t=tasks.find(x=>x.id===id);if(t)t.done=!t.done;renderTasks();}
-function checkAllTasks(){tasks.forEach(t=>t.done=true);renderTasks();showToast("✅ Sab done!");}
-function clearTasks(){tasks=[];document.getElementById("taskListCard").style.display="none";updateStats();}
-
-async function saveTasksAsNote(){
-  if(!tasks.length)return showToast("Pehle plan banao!");
-  const text=tasks.map(t=>`${t.done?'✅':'⬜'} ${t.time} - ${t.task} (${t.duration})`).join("\n");
-  document.getElementById("noteTitle").value="Task Plan - "+new Date().toLocaleDateString();
-  document.getElementById("noteBody").value=text;
-  showTab("notes");showToast("📝 Note mein save ho gaya!");
-}
-
-// ── REMINDERS
-async function requestNotificationPermission(){if("Notification"in window&&Notification.permission==="default")await Notification.requestPermission();}
-
-function addReminder(){
-  const title=document.getElementById("remTitle").value.trim();
-  const dt=document.getElementById("remDateTime").value;
-  const repeat=document.getElementById("remRepeat").value;
-  if(!title||!dt)return showToast("❌ Title aur time chahiye!");
-  reminders.push({id:Date.now(),title,time:new Date(dt).getTime(),repeat,done:false});
-  saveReminders();
-  document.getElementById("remTitle").value="";
-  document.getElementById("remDateTime").value="";
-  renderReminders();
-  showToast("✅ Reminder set! 15 min pehle alert aayega.");
-}
-
-function saveReminders(){localStorage.setItem("sb_reminders",JSON.stringify(reminders));updateStats();}
-
-function renderReminders(){
-  const box=document.getElementById("reminderList");
-  const up=document.getElementById("upcomingReminders");
-  if(!reminders.length){box.innerHTML='<div class="empty-state">Koi reminder nahi</div>';if(up)up.innerHTML='<div class="empty-state">Koi reminder nahi</div>';return;}
-  const html=reminders.map(r=>`
-    <div class="reminder-item">
-      <div class="reminder-info">
-        <div class="reminder-title">${esc(r.title)}</div>
-        <div class="reminder-time">⏰ ${new Date(r.time).toLocaleString('hi-IN')}</div>
-      </div>
-      <div style="display:flex;gap:5px;align-items:center">
-        <span class="badge ${r.done?'done':'pending'}">${r.done?'✓':'⏳'}</span>
-        <button class="danger sm" onclick="deleteReminder(${r.id})">🗑</button>
-      </div>
-    </div>`).join("");
-  box.innerHTML=html;
-  if(up)up.innerHTML=reminders.filter(r=>!r.done).slice(0,3).map(r=>`<div class="reminder-item"><div class="reminder-info"><div class="reminder-title">${esc(r.title)}</div><div class="reminder-time">⏰ ${new Date(r.time).toLocaleString('hi-IN')}</div></div></div>`).join("")||'<div class="empty-state">Koi upcoming reminder nahi</div>';
-}
-
-function deleteReminder(id){reminders=reminders.filter(r=>r.id!==id);saveReminders();renderReminders();}
-
-function startReminderChecker(){
-  setInterval(()=>{
-    const now=Date.now();
-    reminders.forEach(r=>{
-      if(r.done)return;
-      const diff=r.time-now;
-      if(diff>870000&&diff<930000)fireReminder(r,"⏰ 15 minute mein");
-      if(diff>-30000&&diff<30000){fireReminder(r,"🔔 Abhi");r.done=true;saveReminders();renderReminders();}
-    });
-  },30000);
-}
-
-function fireReminder(rem,when){
-  if(Notification.permission==="granted")new Notification("🔔 Second Brain",{body:`${when}: ${rem.title}`});
-  speakText(`${when} aapka reminder hai: ${rem.title}`);
-  showToast(`${when}: ${rem.title}`);
-}
-
-// ── TRANSLATOR
-function swapLang(){
-  const sel=document.getElementById("transFrom");
-  sel.value=sel.value==="hi"?"en":"hi";
-  updateTransLabels();
-}
-function updateTransLabels(){
-  const v=document.getElementById("transFrom").value;
-  document.getElementById("fromLabel").textContent=v==="hi"?"Hindi (Input)":"English (Input)";
-  document.getElementById("toLabel").textContent=v==="hi"?"English (Output)":"Hindi (Output)";
-}
-function autoTranslate(){clearTimeout(transTimeout);transTimeout=setTimeout(doTranslate,1800);}
-
-async function doTranslate(){
-  const text=document.getElementById("transInput").value.trim();
-  if(!text)return;
-  const dir=document.getElementById("transFrom").value;
-  document.getElementById("transOutput").textContent="⏳ Translating...";
-  let prompt=dir==="hi"?`Translate to English (only translation, no explanation):\n${text}`:dir==="en"?`Translate to Hindi (only translation, no explanation):\n${text}`:`Detect language and translate to Hindi/English (only translation):\n${text}`;
-  try{
-    const r=await fetch(BASE+"/chat",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({msg:prompt,history:[]})});
-    const d=await r.json();
-    document.getElementById("transOutput").textContent=d.reply||"Translation fail";
-  }catch{document.getElementById("transOutput").textContent="❌ Translation fail";}
-}
-
-function copyTrans(){navigator.clipboard.writeText(document.getElementById("transOutput").textContent).then(()=>showToast("📋 Copied!"));}
-function speakTrans(){speakText(document.getElementById("transOutput").textContent);}
-function saveTransAsNote(){
-  const inp=document.getElementById("transInput").value;
-  const out=document.getElementById("transOutput").textContent;
-  if(!inp)return showToast("Pehle kuch translate karo!");
-  document.getElementById("noteTitle").value="Translation - "+new Date().toLocaleDateString();
-  document.getElementById("noteBody").value="Original:\n"+inp+"\n\nTranslation:\n"+out;
-  showTab("notes");showToast("📝 Note mein save ho gaya!");
-}
-
-// ── OCR
-function handleOCRDrop(e){
-  e.preventDefault();
-  document.getElementById("ocrDrop").classList.remove("dragover");
-  const file=e.dataTransfer.files[0];
-  if(file&&file.type.startsWith("image/"))loadOCRImage(file);
-}
-function handleOCRFile(e){const file=e.target.files[0];if(file)loadOCRImage(file);}
-
-function loadOCRImage(file){
-  const reader=new FileReader();
-  reader.onload=e=>{
-    ocrImageData=e.target.result.split(",")[1];
-    const prev=document.getElementById("ocrPreview");
-    prev.src=e.target.result;prev.style.display="block";
-    document.getElementById("ocrBtn").style.display="block";
-    showToast("✅ Image load ho gayi! 'Text Nikalo' dabao.");
+  const sections={
+    dashboard:"dashSection",
+    notes:"notesSection",
+    chat:"chatSection",
+    tasks:"tasksSection",
+    reminder:"reminderSection",
+    translate:"translateSection",
+    ocr:"ocrSection",
+    news:"newsSection"
   };
-  reader.readAsDataURL(file);
-}
 
-async function doOCR(){
-  if(!ocrImageData)return showToast("Pehle image upload karo!");
-  setProgress("ocrProgress",40);showToast("⏳ AI text padh raha hai...");
-  try{
-    const r=await fetch(BASE+"/chat",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
-      body:JSON.stringify({
-        msg:"Extract ALL text from this image exactly as it appears. Return only the extracted text, nothing else.",
-        history:[],
-        image:ocrImageData
-      })
-    });
-    const d=await r.json();
-    setProgress("ocrProgress",100);
-    document.getElementById("ocrResult").textContent=d.reply||"Text nahi mila";
-    document.getElementById("ocrResultSection").style.display="block";
-    showToast("✅ Text extract ho gaya!");
-    setTimeout(()=>setProgress("ocrProgress",0),1500);
-  }catch{showToast("❌ OCR fail ho gaya");setProgress("ocrProgress",0);}
-}
-
-async function doPDFSummary(){
-  const text=document.getElementById("pdfText").value.trim();
-  const type=document.getElementById("summaryType").value;
-  if(!text)return showToast("❌ Pehle text paste karo!");
-  setProgress("ocrProgress",40);showToast("⏳ Summary ban rahi hai...");
-  const prompts={
-    short:`Give a 3-4 line summary of this text:\n\n${text}`,
-    detailed:`Give a detailed summary with key points of this text:\n\n${text}`,
-    bullets:`Summarize in bullet points:\n\n${text}`,
-    hindi:`Is text ka Hindi mein summary do:\n\n${text}`
+  const tabs={
+    dashboard:"t1",
+    notes:"t2",
+    chat:"t3",
+    tasks:"t4",
+    reminder:"t5",
+    translate:"t6",
+    ocr:"t7",
+    news:"t8"
   };
-  try{
-    const r=await fetch(BASE+"/chat",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({msg:prompts[type],history:[]})});
-    const d=await r.json();
-    setProgress("ocrProgress",100);
-    document.getElementById("ocrResult").textContent=d.reply||"Summary nahi bani";
-    document.getElementById("ocrResultSection").style.display="block";
-    showToast("✅ Summary ready!");
-    setTimeout(()=>setProgress("ocrProgress",0),1500);
-  }catch{showToast("❌ Summary fail");setProgress("ocrProgress",0);}
+
+  // hide all
+  Object.values(sections).forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.style.display="none";
+  });
+
+  // remove active
+  Object.values(tabs).forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.classList.remove("active");
+  });
+
+  // show selected
+  if(document.getElementById(sections[tab]))
+    document.getElementById(sections[tab]).style.display="block";
+
+  if(document.getElementById(tabs[tab]))
+    document.getElementById(tabs[tab]).classList.add("active");
 }
 
-function copyOCR(){navigator.clipboard.writeText(document.getElementById("ocrResult").textContent).then(()=>showToast("📋 Copied!"));}
-function saveOCRAsNote(){
-  const text=document.getElementById("ocrResult").textContent;
-  if(!text)return;
-  document.getElementById("noteTitle").value="OCR/Summary - "+new Date().toLocaleDateString();
-  document.getElementById("noteBody").value=text;
-  showTab("notes");showToast("📝 Note mein save ho gaya!");
+
+// Dummy news (test ke liye)
+function fetchNews(){
+  document.getElementById("newsList").innerHTML = "📰 News load ho gayi (API connect hone ke baad real aayegi)";
 }
 
-// ── VOICE
-function startVoice(target){
-  const SpeechRec=window.SpeechRecognition||window.webkitSpeechRecognition;
-  if(!SpeechRec)return showToast("❌ Browser voice support nahi karta");
-  if(isRecording){recognition?.stop();return;}
-  voiceTarget=target;
-  recognition=new SpeechRec();
-  recognition.lang="hi-IN";
-  recognition.interimResults=false;
-  recognition.onresult=e=>{
-    const txt=e.results[0][0].transcript;
-    const targets={note:"noteBody",chat:"chatInput",reminder:"remTitle",trans:"transInput",task:"taskGoal"};
-    if(targets[target])document.getElementById(targets[target]).value+=txt+" ";
-    if(target==="chat"){sendMsg();}
-    else if(target==="trans"){doTranslate();}
-    showToast("✅ Voice: "+txt.substring(0,25)+"...");
-  };
-  recognition.onerror=()=>showToast("❌ Voice error, retry karo");
-  recognition.onend=()=>{
-    isRecording=false;
-    const btnIds={note:"voiceNoteBtn",chat:"voiceChatBtn",reminder:"voiceReminderBtn",trans:"voiceTransBtn"};
-    const btn=document.getElementById(btnIds[voiceTarget]);
-    if(btn){btn.textContent="🎤";btn.classList.remove("recording");}
-  };
-  isRecording=true;
-  recognition.start();
-  const btns={note:"voiceNoteBtn",chat:"voiceChatBtn",reminder:"voiceReminderBtn",trans:"voiceTransBtn"};
-  const btn=document.getElementById(btns[target]);
-  if(btn){btn.textContent="⏹";btn.classList.add("recording");}
-  showToast("🎤 Bol rahe hain...");
-}
-
-// ── TTS
-function speakText(text){
-  if(!text)return;
-  stopSpeaking();
-  const clean=text.replace(/<[^>]*>/g,"").replace(/\*+/g,"").substring(0,600);
-  const utt=new SpeechSynthesisUtterance(clean);
-  utt.lang=/[\u0900-\u097F]/.test(clean)?"hi-IN":"en-US";
-  utt.rate=0.9;
-  window.speechSynthesis.speak(utt);
-}
-function stopSpeaking(){window.speechSynthesis.cancel();}
-
-// ── STATS
-function updateStats(){
-  document.getElementById("statNotes").textContent=allNotes.length;
-  document.getElementById("statTasks").textContent=tasks.filter(t=>!t.done).length;
-  document.getElementById("statReminders").textContent=reminders.filter(r=>!r.done).length;
-  document.getElementById("statChats").textContent=chatCount;
-}
-
-// ── UTILS
-function setProgress(id,val){document.getElementById(id).style.width=val+"%";}
-function showToast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),3000);}
-function esc(str){return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/\n/g,"<br>");}
-
-if("serviceWorker"in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
 </script>
+
 </body>
 </html>
