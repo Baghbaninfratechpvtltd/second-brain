@@ -150,9 +150,8 @@ You are the AI inside "Second Brain" — a personal notes and knowledge app.`
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-  model: "openrouter/auto",
+  model: "google/gemma-3-27b-it:free",
   messages,
-  plugins: [{ id: "web" }]
 })
     });
 
