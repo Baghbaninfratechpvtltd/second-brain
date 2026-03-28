@@ -1,7 +1,7 @@
 {
   "name": "Second Brain",
   "short_name": "Brain",
-  "description": "Aapka personal notes aur AI assistant",
+  "description": "Aapka personal notes, AI aur knowledge hub",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a14",
@@ -9,16 +9,9 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "icon.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>",
+      "sizes": "any",
+      "type": "image/svg+xml"
     }
   ]
 }
