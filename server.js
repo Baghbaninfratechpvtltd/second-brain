@@ -146,26 +146,118 @@ app.get("/news", authMiddleware, async (req, res) => {
   }
 });
 
-// ── AI CHAT
-const SYSTEM_PROMPT = `You are "Brain", the AI assistant inside "Second Brain" app.
+// ── AI CHAT (streaming)
+app.post("/chat/stream", authMiddleware, async (req, res) => {
+  try {
+    const { msg, history = [], image, newsContext } = req.body;
+    if (!msg) return res.status(400).json({ error: "Message chahiye" });
 
-CRITICAL LANGUAGE RULE - FOLLOW STRICTLY:
-- If user writes in HINDI (Devanagari script like हिंदी) → Reply ONLY in Hindi (Devanagari). NO English words at all.
-- If user writes in ENGLISH → Reply ONLY in English. NO Hindi words at all.
-- If user writes in HINGLISH (Roman Hindi like "kya haal hai") → Reply in Hinglish only.
-- NEVER mix languages. NEVER translate your response.
-- NEVER add English translation after Hindi response.
-- NEVER add "(I can tell you...)" or any English explanation after Hindi answer.
+    // SSE headers
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.flushHeaders();
 
-BEHAVIOR:
-- Give clear, detailed, well-structured answers
-- Use bullet points, numbered lists when helpful
-- For coding: provide complete working code
-- Use news articles provided to answer latest questions
-- Be warm, helpful and honest
-- Remember conversation history
+    const messages = [];
 
-You are a personal knowledge hub with notes, tasks, reminders and AI chat.`;
+    if (newsContext && newsContext.length > 0) {
+      const newsText = newsContext.map((a, i) =>
+        `[${i+1}] ${a.title}\n${a.description || ""}\nSource: ${a.source} | ${new Date(a.publishedAt).toLocaleDateString()}`
+      ).join("\n\n");
+      messages.push({
+        role: "system",
+        content: `Latest news articles:\n\n${newsText}`
+      });
+    }
+
+    for (const turn of history) {
+      messages.push({
+        role: turn.role === "user" ? "user" : "assistant",
+        content: turn.text
+      });
+    }
+
+    if (image) {
+      messages.push({
+        role: "user",
+        content: [
+          { type: "image_url", image_url: { url: `data:image/jpeg;base64,${image}` } },
+          { type: "text", text: msg }
+        ]
+      });
+    } else {
+      messages.push({ role: "user", content: msg });
+    }
+
+    const model = image
+      ? "meta-llama/llama-3.2-11b-vision-instruct:free"
+      : "openrouter/auto";
+
+    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${OPENROUTER_KEY}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: "system", content: SYSTEM_PROMPT }, ...messages],
+        stream: true
+      })
+    });
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = decoder.decode(value);
+      const lines = chunk.split("\n").filter(l => l.startsWith("data: "));
+      for (const line of lines) {
+        const data = line.replace("data: ", "").trim();
+        if (data === "[DONE]") {
+          res.write("data: [DONE]\n\n");
+          res.end();
+          return;
+        }
+        try {
+          const parsed = JSON.parse(data);
+          const token = parsed?.choices?.[0]?.delta?.content || "";
+          if (token) res.write(`data: ${JSON.stringify({ token })}\n\n`);
+        } catch {}
+      }
+    }
+    res.write("data: [DONE]\n\n");
+    res.end();
+  } catch (e) {
+    console.error("Stream Error:", e);
+    res.write(`data: ${JSON.stringify({ error: "AI fail ho gaya" })}\n\n`);
+    res.end();
+  }
+});
+
+const SYSTEM_PROMPT = `Tu "Brain" hai — "Second Brain" app ka AI assistant. Tu ek dost ki tarah baat karta hai.
+
+LANGUAGE RULE:
+- User Hindi mein likhe → simple, bolchal wali Hindi mein jawab de (jaise dost bolta hai, formal/literary nahi)
+- User English mein likhe → English mein jawab de
+- User Hinglish mein likhe (Roman Hindi) → Hinglish mein jawab de
+- Kabhi bhi ek hi message mein Hindi + English dono mat mix kar
+- Hindi response ke baad English translation mat de
+
+TONE:
+- Dost jaisi simple boli — jaise "kya baat hai", "haan bilkul", "dekh yaar" wali style
+- Formal/literary Hindi BILKUL mat — "आपको सूचित किया जाता है" type nahi chahiye
+- Seedha kaam ki baat kar, ghumao-phirao nahi
+
+HELPFUL BEHAVIOR:
+- Clear aur helpful jawab de
+- Code poochha to puri working code de
+- News articles mile to unse jawab de
+- Lists/bullets use karo jab helpful ho
+
+Tu ek personal assistant hai — notes, tasks, reminders aur AI chat sab teri territory hai.`;
 
 app.post("/chat", authMiddleware, async (req, res) => {
   try {
