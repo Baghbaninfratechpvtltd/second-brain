@@ -8,6 +8,7 @@
   <meta name="theme-color" content="#7c3aed">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/9.1.6/marked.min.js"></script>
+  <script src='https://unpkg.com/tesseract.js@4/dist/tesseract.min.js'></script>
   <style>
     *{box-sizing:border-box;margin:0;padding:0}
     :root{
@@ -830,35 +831,52 @@ function handleOCRFile(e){const file=e.target.files[0];if(file)loadOCRImage(file
 function loadOCRImage(file){
   const reader=new FileReader();
   reader.onload=e=>{
-    ocrImageData=e.target.result.split(",")[1];
+    ocrImageData=e.target.result;
     const prev=document.getElementById("ocrPreview");
     prev.src=e.target.result;prev.style.display="block";
     document.getElementById("ocrBtn").style.display="block";
-    showToast("✅ Image load ho gayi! 'Text Nikalo' dabao.");
+    showToast("✅ Image load ho gayi! Text Nikalo dabao.");
   };
   reader.readAsDataURL(file);
 }
 
 async function doOCR(){
   if(!ocrImageData)return showToast("Pehle image upload karo!");
-  setProgress("ocrProgress",40);showToast("⏳ AI text padh raha hai...");
+  setProgress("ocrProgress",10);
+  showToast("⏳ Text padha ja raha hai...");
+  document.getElementById("ocrResult").textContent="";
+  document.getElementById("ocrResultSection").style.display="block";
+
   try{
-    const r=await fetch(BASE+"/chat",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
-      body:JSON.stringify({
-        msg:"Extract ALL text from this image exactly as it appears. Return only the extracted text, nothing else.",
-        history:[],
-        image:ocrImageData
-      })
-    });
-    const d=await r.json();
+    const result = await Tesseract.recognize(
+      ocrImageData,
+      "hin+eng", // Hindi + English dono
+      {
+        logger: m => {
+          if(m.status === "recognizing text"){
+            const pct = Math.round(m.progress * 80) + 10;
+            setProgress("ocrProgress", pct);
+            document.getElementById("ocrResult").textContent = "⏳ " + Math.round(m.progress*100) + "% complete...";
+          }
+        }
+      }
+    );
+    const text = result.data.text.trim();
     setProgress("ocrProgress",100);
-    document.getElementById("ocrResult").textContent=d.reply||"Text nahi mila";
-    document.getElementById("ocrResultSection").style.display="block";
-    showToast("✅ Text extract ho gaya!");
-    setTimeout(()=>setProgress("ocrProgress",0),1500);
-  }catch{showToast("❌ OCR fail ho gaya");setProgress("ocrProgress",0);}
+    if(text){
+      document.getElementById("ocrResult").textContent = text;
+      showToast("✅ Text extract ho gaya! " + text.length + " characters");
+    } else {
+      document.getElementById("ocrResult").textContent = "❌ Text nahi mila. Clear image use karo.";
+      showToast("❌ Text nahi mila");
+    }
+    setTimeout(()=>setProgress("ocrProgress",0),2000);
+  }catch(e){
+    console.error("OCR Error:",e);
+    showToast("❌ OCR fail - clear image use karo");
+    setProgress("ocrProgress",0);
+    document.getElementById("ocrResult").textContent="❌ Error: "+e.message;
+  }
 }
 
 async function doPDFSummary(){
