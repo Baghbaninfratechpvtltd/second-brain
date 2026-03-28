@@ -74,6 +74,8 @@
     .msg.user{text-align:right}
     .msg.user .bubble{background:#4c1d95;padding:8px 12px;border-radius:14px 14px 3px 14px;display:inline-block;max-width:80%;line-height:1.5;text-align:left}
     .msg.ai .bubble{background:#1a1a35;border:1px solid var(--border);padding:10px 13px;border-radius:3px 14px 14px 14px;display:inline-block;max-width:92%;line-height:1.6;color:#ddd6fe}
+    .cursor-blink{display:inline-block;animation:blink 0.7s infinite;color:#a78bfa;font-weight:300}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
     .ai-md p{margin-bottom:6px}.ai-md ul,.ai-md ol{margin:4px 0 4px 15px}.ai-md li{margin-bottom:2px}
     .ai-md h1,.ai-md h2,.ai-md h3{color:#c4b5fd;margin:7px 0 4px}
     .ai-md code{background:#0d0d1f;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:0.8rem;color:#86efac}
@@ -107,20 +109,10 @@
     .progress-bar{height:4px;background:var(--border);border-radius:2px;margin:8px 0;overflow:hidden}
     .progress-fill{height:100%;background:var(--purple);border-radius:2px;transition:width 0.3s;width:0%}
     #installBanner{display:none}
-    /* ── Beautiful Install Popup ── */
-    #installPopup{
-      display:none;position:fixed;inset:0;z-index:9999;
-      background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);
-      align-items:flex-end;justify-content:center;padding:0;
-    }
+    #installPopup{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center}
     #installPopup.show{display:flex;animation:fadeInBg 0.3s ease}
     @keyframes fadeInBg{from{opacity:0}to{opacity:1}}
-    .install-sheet{
-      background:linear-gradient(160deg,#1a0a3a 0%,#0e0e22 100%);
-      border:1px solid #4c1d95;border-radius:24px 24px 0 0;
-      padding:28px 24px 36px;width:100%;max-width:480px;
-      animation:slideUp 0.4s cubic-bezier(.22,.68,0,1.2);
-    }
+    .install-sheet{background:linear-gradient(160deg,#1a0a3a 0%,#0e0e22 100%);border:1px solid #4c1d95;border-radius:24px 24px 0 0;padding:28px 24px 36px;width:100%;max-width:480px;animation:slideUp 0.4s cubic-bezier(.22,.68,0,1.2)}
     @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
     .install-handle{width:40px;height:4px;background:#4c1d95;border-radius:4px;margin:0 auto 20px;opacity:0.6}
     .install-app-row{display:flex;align-items:center;gap:14px;margin-bottom:18px}
@@ -130,17 +122,12 @@
     .install-rating{display:flex;align-items:center;gap:4px;font-size:0.76rem;color:#fbbf24}
     .install-features{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
     .install-feat{background:#1a1a35;border:1px solid #2a2a4a;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;font-size:0.78rem;color:#c4b5fd}
-    .install-feat span{font-size:1.1rem}
-    .install-btn-main{width:100%;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:14px;color:white;font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:0.3px;margin-bottom:10px;box-shadow:0 4px 20px rgba(124,58,237,0.4);transition:transform 0.15s}
-    .install-btn-main:active{transform:scale(0.98)}
+    .install-btn-main{width:100%;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:14px;color:white;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:10px;box-shadow:0 4px 20px rgba(124,58,237,0.4)}
     .install-btn-skip{width:100%;padding:10px;background:transparent;border:none;color:#666;font-size:0.82rem;cursor:pointer}
-    .install-store-row{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:16px;color:#555;font-size:0.74rem}
-    .install-divider{height:1px;background:#2a2a4a;margin:14px 0}
-    /* iOS guide */
-    .ios-guide{display:none;text-align:center;padding:8px 0}
+    .install-store-row{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:14px;color:#555;font-size:0.74rem}
     .ios-steps{display:flex;flex-direction:column;gap:10px;margin:12px 0}
     .ios-step{display:flex;align-items:center;gap:10px;background:#1a1a35;border-radius:10px;padding:10px 12px}
-    .ios-step-num{width:26px;height:26px;background:#7c3aed;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0}
+    .ios-step-num{width:26px;height:26px;background:#7c3aed;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;color:white}
     .ios-step p{font-size:0.8rem;color:#c4b5fd;text-align:left}
     .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1e1e3f;border:1px solid var(--purple);color:#c4b5fd;padding:9px 18px;border-radius:20px;font-size:0.82rem;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
     .toast.show{opacity:1}
@@ -165,24 +152,18 @@
 </div>
 
 <div class="container">
-  <!-- ── INSTALL POPUP (Play Store jaisa feel) ── -->
+  <!-- ── INSTALL POPUP ── -->
   <div id="installPopup">
     <div class="install-sheet">
       <div class="install-handle"></div>
-
-      <!-- App Info Row -->
       <div class="install-app-row">
         <div class="install-icon">🧠</div>
         <div class="install-app-info">
           <h2>Second Brain</h2>
-          <p>by Second Brain App</p>
-          <div class="install-rating">
-            ★★★★★ <span style="color:#666;margin-left:2px">· Free</span>
-          </div>
+          <p>AI · Notes · Reminders · OCR</p>
+          <div class="install-rating">★★★★★ <span style="color:#666;margin-left:2px">· Free</span></div>
         </div>
       </div>
-
-      <!-- Features Grid -->
       <div class="install-features">
         <div class="install-feat"><span>🤖</span> AI Chat</div>
         <div class="install-feat"><span>📝</span> Smart Notes</div>
@@ -191,46 +172,24 @@
         <div class="install-feat"><span>🌐</span> Translator</div>
         <div class="install-feat"><span>📸</span> OCR Scan</div>
       </div>
-
-      <!-- Android Install -->
       <div id="androidInstallSection">
-        <div class="install-store-row">
-          <span>✅</span> Verified · No ads · Free forever
-        </div>
-        <button class="install-btn-main" onclick="doInstallPWA()" id="mainInstallBtn">
-          📲 Install Karo — Free
-        </button>
-        <button class="install-btn-skip" onclick="closeInstallPopup()">
-          Abhi nahi, baad mein
-        </button>
+        <div class="install-store-row">✅ Verified · No ads · Free forever</div>
+        <button class="install-btn-main" onclick="doInstallPWA()">📲 Install Karo — Free</button>
+        <button class="install-btn-skip" onclick="closeInstallPopup()">Abhi nahi, baad mein</button>
       </div>
-
-      <!-- iOS Guide (auto-show on iOS) -->
       <div id="iosInstallSection" style="display:none">
-        <div class="install-divider"></div>
-        <p style="color:#a78bfa;font-weight:600;text-align:center;font-size:0.88rem;margin-bottom:8px">📱 iPhone mein install karo:</p>
+        <p style="color:#a78bfa;font-weight:600;text-align:center;font-size:0.88rem;margin-bottom:8px">📱 iPhone pe install karo:</p>
         <div class="ios-steps">
-          <div class="ios-step">
-            <div class="ios-step-num">1</div>
-            <p>Neeche <b>Share button</b> (□↑) dabao</p>
-          </div>
-          <div class="ios-step">
-            <div class="ios-step-num">2</div>
-            <p><b>"Add to Home Screen"</b> select karo</p>
-          </div>
-          <div class="ios-step">
-            <div class="ios-step-num">3</div>
-            <p>Upar <b>"Add"</b> dabao — app install!</p>
-          </div>
+          <div class="ios-step"><div class="ios-step-num">1</div><p>Neeche <b>Share button</b> (□↑) dabao</p></div>
+          <div class="ios-step"><div class="ios-step-num">2</div><p><b>"Add to Home Screen"</b> select karo</p></div>
+          <div class="ios-step"><div class="ios-step-num">3</div><p>Upar <b>"Add"</b> dabao — done!</p></div>
         </div>
         <button class="install-btn-skip" onclick="closeInstallPopup()">Samajh gaya ✓</button>
       </div>
     </div>
   </div>
-
-  <!-- OLD install banner (hidden, kept for compat) -->
   <div id="installBanner"></div>
-  
+
   <!-- Install Guide Modal -->
   <div class="modal-overlay" id="installModal" onclick="if(event.target===this)document.getElementById('installModal').classList.remove('open')">
     <div class="modal">
@@ -243,9 +202,7 @@
         <p style="color:#a78bfa;font-weight:600;margin:12px 0 8px">Computer (Chrome/Edge):</p>
         <p style="color:#ccc;font-size:0.88rem;line-height:1.7">1. Address bar mein <b>Install icon (⊕)</b> click karo<br>2. Ya 3 dots → "Install Second Brain"</p>
       </div>
-      <div class="modal-btns">
-        <button onclick="document.getElementById('installModal').classList.remove('open')">Theek hai ✓</button>
-      </div>
+      <div class="modal-btns"><button onclick="document.getElementById('installModal').classList.remove('open')">Theek hai ✓</button></div>
     </div>
   </div>
 
@@ -606,60 +563,32 @@ let isRecording=false, recognition=null, voiceTarget=null, lastAIReply="", chatC
 let reminders=JSON.parse(localStorage.getItem("sb_reminders")||"[]");
 let ocrImageData=null, transTimeout=null;
 
-// ── SMART PWA INSTALL SYSTEM ──
+// ── PWA INSTALL SYSTEM
 function isIOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent);}
-function isInStandaloneMode(){return window.matchMedia("(display-mode:standalone)").matches||window.navigator.standalone===true;}
-function wasRecentlyDismissed(){
-  const t=localStorage.getItem("sb_install_dismissed");
-  if(!t)return false;
-  return(Date.now()-parseInt(t))<3*24*60*60*1000; // 3 din tak nahi dikhayega
-}
+function isStandalone(){return window.matchMedia("(display-mode:standalone)").matches||window.navigator.standalone===true;}
+function wasRecentlyDismissed(){const t=localStorage.getItem("sb_dismissed");return t&&(Date.now()-parseInt(t))<3*24*60*60*1000;}
 function showInstallPopup(){
-  if(isInStandaloneMode())return;
-  if(localStorage.getItem("sb_installed"))return;
-  if(wasRecentlyDismissed())return;
-  const popup=document.getElementById("installPopup");
-  if(isIOS()){
-    document.getElementById("androidInstallSection").style.display="none";
-    document.getElementById("iosInstallSection").style.display="block";
-  }
-  popup.classList.add("show");
+  if(isStandalone()||localStorage.getItem("sb_installed")||wasRecentlyDismissed())return;
+  if(isIOS()){document.getElementById("androidInstallSection").style.display="none";document.getElementById("iosInstallSection").style.display="block";}
+  document.getElementById("installPopup").classList.add("show");
 }
 function closeInstallPopup(){
   document.getElementById("installPopup").classList.remove("show");
-  localStorage.setItem("sb_install_dismissed",Date.now().toString());
+  localStorage.setItem("sb_dismissed",Date.now().toString());
 }
 async function doInstallPWA(){
   if(deferredPrompt){
     deferredPrompt.prompt();
     const{outcome}=await deferredPrompt.userChoice;
-    if(outcome==="accepted"){
-      localStorage.setItem("sb_installed","1");
-      document.getElementById("installPopup").classList.remove("show");
-      showToast("🎉 App install ho gaya! Home screen pe dekho");
-    }else{closeInstallPopup();}
+    if(outcome==="accepted"){localStorage.setItem("sb_installed","1");document.getElementById("installPopup").classList.remove("show");showToast("🎉 App install ho gaya! Home screen pe dekho");}
+    else closeInstallPopup();
     deferredPrompt=null;
-  }else if(isIOS()){
-    document.getElementById("androidInstallSection").style.display="none";
-    document.getElementById("iosInstallSection").style.display="block";
-  }else{
-    closeInstallPopup();
-    showToast("Browser ke menu se 'Install app' karo");
-  }
+  }else if(isIOS()){document.getElementById("androidInstallSection").style.display="none";document.getElementById("iosInstallSection").style.display="block";}
+  else{closeInstallPopup();showToast("Browser menu se 'Install app' karo");}
 }
-window.addEventListener("beforeinstallprompt",e=>{
-  e.preventDefault();deferredPrompt=e;
-  // Popup show karo jab prompt ready ho
-  setTimeout(showInstallPopup,1500);
-});
-window.addEventListener("appinstalled",()=>{
-  localStorage.setItem("sb_installed","1");
-  document.getElementById("installPopup").classList.remove("show");
-});
-// iOS ke liye bhi popup dikhao (beforeinstallprompt nahi aata iOS pe)
-if(isIOS()&&!isInStandaloneMode()&&!wasRecentlyDismissed()){
-  setTimeout(showInstallPopup,1500);
-}
+window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;setTimeout(showInstallPopup,1500);});
+window.addEventListener("appinstalled",()=>{localStorage.setItem("sb_installed","1");document.getElementById("installPopup").classList.remove("show");});
+if(isIOS()&&!isStandalone()&&!wasRecentlyDismissed())setTimeout(showInstallPopup,1500);
 function showInstallGuide(){document.getElementById("installModal").classList.add("open");}
 function installPWA(){doInstallPWA();}
 
@@ -847,39 +776,89 @@ function renderNews(articles) {
   showToast("✅ "+ articles.length +" news mili!");
 }
 
-// ── AI CHAT
+// ── AI CHAT — Streaming (word by word, Gemini Flash ⚡)
 async function sendMsg(){
   const input=document.getElementById("chatInput");
   const msg=input.value.trim();if(!msg)return;
   const chatBox=document.getElementById("chatBox");
   input.value="";chatCount++;updateStats();
+
   chatBox.innerHTML+=`<div class="msg user"><div class="msg-label" style="text-align:right">Aap</div><div class="bubble">${esc(msg)}</div></div>`;
   chatBox.scrollTop=chatBox.scrollHeight;
+
   const tid="t_"+Date.now();
-  chatBox.innerHTML+=`<div id="${tid}" class="typing">⏳ AI soch raha hai...</div>`;
+  chatBox.innerHTML+=`<div id="${tid}" class="typing">⏳ Soch raha hai...</div>`;
   chatBox.scrollTop=chatBox.scrollHeight;
+
   try{
-    // News query detect karo
-    let newsContext = [];
-    if(isNewsQuery(msg)) {
-      document.getElementById(tid).textContent = "📰 Latest news fetch ho rahi hai...";
-      newsContext = await fetchNewsForChat(msg);
+    let newsContext=[];
+    if(isNewsQuery(msg)){
+      document.getElementById(tid).textContent="📰 News dekh raha hai...";
+      newsContext=await fetchNewsForChat(msg);
     }
-    const r=await fetch(BASE+"/chat",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({msg,history:chatHistory,newsContext})});
-    const d=await r.json();
+
+    const aid="ai_"+Date.now();
     document.getElementById(tid)?.remove();
-    const reply=d.reply||d.error||"Koi jawab nahi.";
-    lastAIReply=reply;
-    chatHistory.push({role:"user",text:msg});
-    chatHistory.push({role:"model",text:reply});
-    if(chatHistory.length>20)chatHistory=chatHistory.slice(-20);
-    const html=typeof marked!=="undefined"?marked.parse(reply):esc(reply);
-    chatBox.innerHTML+=`<div class="msg ai"><div class="msg-label">AI 🤖</div><div class="bubble ai-md">${html}</div></div>`;
-  }catch{
+    chatBox.innerHTML+=`<div class="msg ai"><div class="msg-label">AI 🤖</div><div class="bubble ai-md" id="${aid}"><span class="cursor-blink">▍</span></div></div>`;
+    chatBox.scrollTop=chatBox.scrollHeight;
+
+    const r=await fetch(BASE+"/chat/stream",{
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
+      body:JSON.stringify({msg,history:chatHistory,newsContext})
+    });
+
+    if(!r.ok||!r.body){
+      // Fallback non-streaming
+      const d=await r.json().catch(()=>({error:"Server error"}));
+      const reply=d.reply||d.error||"Koi jawab nahi.";
+      const el=document.getElementById(aid);
+      if(el)el.innerHTML=typeof marked!=="undefined"?marked.parse(reply):esc(reply);
+      lastAIReply=reply;chatHistory.push({role:"user",text:msg});chatHistory.push({role:"model",text:reply});
+      if(chatHistory.length>20)chatHistory=chatHistory.slice(-20);
+      chatBox.scrollTop=chatBox.scrollHeight;return;
+    }
+
+    const reader=r.body.getReader();
+    const decoder=new TextDecoder();
+    let fullText="";let buffer="";
+
+    while(true){
+      const{done,value}=await reader.read();
+      if(done)break;
+      buffer+=decoder.decode(value,{stream:true});
+      const lines=buffer.split("\n");
+      buffer=lines.pop();
+      for(const line of lines){
+        if(!line.startsWith("data: "))continue;
+        const raw=line.replace("data: ","").trim();
+        if(raw==="[DONE]"){
+          // Final markdown render
+          const el=document.getElementById(aid);
+          if(el){el.innerHTML=typeof marked!=="undefined"?marked.parse(fullText):esc(fullText);}
+          lastAIReply=fullText;
+          chatHistory.push({role:"user",text:msg});chatHistory.push({role:"model",text:fullText});
+          if(chatHistory.length>20)chatHistory=chatHistory.slice(-20);
+          chatBox.scrollTop=chatBox.scrollHeight;
+          break;
+        }
+        try{
+          const parsed=JSON.parse(raw);
+          if(parsed.error){const el=document.getElementById(aid);if(el)el.innerHTML=`<span style="color:var(--red)">❌ ${esc(parsed.error)}</span>`;return;}
+          if(parsed.token){
+            fullText+=parsed.token;
+            const el=document.getElementById(aid);
+            if(el){el.textContent=fullText;el.innerHTML+=`<span class="cursor-blink">▍</span>`;}
+            chatBox.scrollTop=chatBox.scrollHeight;
+          }
+        }catch{}
+      }
+    }
+  }catch(err){
     document.getElementById(tid)?.remove();
-    chatBox.innerHTML+=`<div class="msg ai"><div class="bubble" style="color:var(--red)">❌ Connection fail</div></div>`;
+    chatBox.innerHTML+=`<div class="msg ai"><div class="bubble" style="color:var(--red)">❌ Connection fail — dobara try karo</div></div>`;
+    chatBox.scrollTop=chatBox.scrollHeight;
   }
-  chatBox.scrollTop=chatBox.scrollHeight;
 }
 
 function clearChat(){chatHistory=[];lastAIReply="";document.getElementById("chatBox").innerHTML=`<div class="msg ai"><div class="msg-label">AI 🤖</div><div class="bubble ai-md">Chat clear! 😊</div></div>`;}
