@@ -118,24 +118,23 @@ app.get("/news", authMiddleware, async (req, res) => {
     const query = req.query.q || "India";
     const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=hi&gl=IN&ceid=IN:hi`;
     const r = await fetch(url, {
-      headers: { "User-Agent": "Mozilla/5.0" }
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" }
     });
     const xml = await r.text();
 
-    // XML parse karo
     const items = xml.match(/<item>([\s\S]*?)<\/item>/g) || [];
     const articles = items.slice(0, 8).map(item => {
       const title       = (item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)       || item.match(/<title>(.*?)<\/title>/))?.[1]       || "";
       const description = (item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/) || item.match(/<description>(.*?)<\/description>/))?.[1] || "";
-      const link        = item.match(/<link>(.*?)<\/link>/)?.[1] || 
-                          item.match(/<link\/>(.*?)<\/link>/)?.[1] || "#";
+      const link        = item.match(/<link\/>(.*?)<item/s)?.[1]?.trim() ||
+                          item.match(/<link>(.*?)<\/link>/)?.[1] || "#";
       const pubDate     = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || "";
       const source      = item.match(/<source[^>]*>(.*?)<\/source>/)?.[1] || "Google News";
       return {
-        title: title.replace(/<[^>]*>/g, ""),
-        description: description.replace(/<[^>]*>/g, "").substring(0, 150),
-        url: link,
-        source,
+        title: title.replace(/<[^>]*>/g, "").trim(),
+        description: description.replace(/<[^>]*>/g, "").substring(0, 200).trim(),
+        url: link.trim(),
+        source: source.trim(),
         publishedAt: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString()
       };
     });
