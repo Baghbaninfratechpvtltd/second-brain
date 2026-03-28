@@ -116,19 +116,33 @@ app.delete("/notes/:id", authMiddleware, async (req, res) => {
 app.get("/news", authMiddleware, async (req, res) => {
   try {
     const query = req.query.q || "India";
-    const GNEWS_KEY = process.env.GNEWS_KEY || "";
-    const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=hi&country=in&max=8&sortby=publishedAt&apikey=${GNEWS_KEY}`;
-    const r = await fetch(url);
-    const data = await r.json();
-    const articles = (data.articles || []).map(a => ({
-      title: a.title,
-      description: a.description,
-      url: a.url,
-      source: a.source?.name,
-      publishedAt: a.publishedAt
-    }));
+    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=hi&gl=IN&ceid=IN:hi`;
+    const r = await fetch(url, {
+      headers: { "User-Agent": "Mozilla/5.0" }
+    });
+    const xml = await r.text();
+
+    // XML parse karo
+    const items = xml.match(/<item>([\s\S]*?)<\/item>/g) || [];
+    const articles = items.slice(0, 8).map(item => {
+      const title       = (item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/)       || item.match(/<title>(.*?)<\/title>/))?.[1]       || "";
+      const description = (item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/) || item.match(/<description>(.*?)<\/description>/))?.[1] || "";
+      const link        = item.match(/<link>(.*?)<\/link>/)?.[1] || 
+                          item.match(/<link\/>(.*?)<\/link>/)?.[1] || "#";
+      const pubDate     = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || "";
+      const source      = item.match(/<source[^>]*>(.*?)<\/source>/)?.[1] || "Google News";
+      return {
+        title: title.replace(/<[^>]*>/g, ""),
+        description: description.replace(/<[^>]*>/g, "").substring(0, 150),
+        url: link,
+        source,
+        publishedAt: pubDate ? new Date(pubDate).toISOString() : new Date().toISOString()
+      };
+    });
+
     res.json({ articles });
   } catch (e) {
+    console.error("News error:", e);
     res.status(500).json({ error: "News fetch fail", articles: [] });
   }
 });
