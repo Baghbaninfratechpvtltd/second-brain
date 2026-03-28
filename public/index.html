@@ -165,7 +165,7 @@
       <div class="tab" id="t6" onclick="showTab('translate')">🌐 Trans</div>
       <div class="tab" id="t7" onclick="showTab('ocr')">📸 OCR</div>
       <div class="tab" id="t8" onclick="showTab('news')">📰 News</div>
-      <div class="tab" id="t8" onclick="showTab('news')">📰 News</div>
+      
     </div>
 
     <!-- DASHBOARD -->
@@ -382,6 +382,26 @@
       </div>
     </div>
 
+    <!-- NEWS -->
+    <div id="newsSection" style="display:none">
+      <div class="card">
+        <div class="card-title">📰 Latest News</div>
+        <div class="search-bar">
+          <input id="newsQuery" placeholder="Kya dhundna hai? (Railway, cricket, jobs...)" value="India latest news">
+          <button onclick="fetchNews()">🔍 Search</button>
+        </div>
+        <div id="newsList"><div class="empty-state">Search karo ya neeche topic choose karo</div></div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
+          <button class="secondary sm" onclick="quickNews('Railway vacancy 2025')">🚂 Railway</button>
+          <button class="secondary sm" onclick="quickNews('India government jobs 2025')">💼 Govt Jobs</button>
+          <button class="secondary sm" onclick="quickNews('IPL cricket 2025')">🏏 Cricket</button>
+          <button class="secondary sm" onclick="quickNews('India stock market')">📈 Market</button>
+          <button class="secondary sm" onclick="quickNews('India technology news')">💻 Tech</button>
+          <button class="secondary sm" onclick="quickNews('India politics today')">🗳️ Politics</button>
+        </div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -467,10 +487,10 @@ function logout(){token="";userEmail="";localStorage.removeItem("sb_token");loca
 function showTab(tab){
   const s={dashboard:"dashSection",notes:"notesSection",chat:"chatSection",tasks:"tasksSection",reminder:"reminderSection",translate:"translateSection",ocr:"ocrSection",news:"newsSection"};
   const t={dashboard:"t1",notes:"t2",chat:"t3",tasks:"t4",reminder:"t5",translate:"t6",ocr:"t7",news:"t8"};
-  Object.values(s).forEach(x=>document.getElementById(x).style.display="none");
-  Object.values(t).forEach(x=>document.getElementById(x).classList.remove("active"));
-  document.getElementById(s[tab]).style.display="block";
-  document.getElementById(t[tab]).classList.add("active");
+  Object.values(s).forEach(x=>{const el=document.getElementById(x);if(el)el.style.display="none";});
+  Object.values(t).forEach(x=>{const el=document.getElementById(x);if(el)el.classList.remove("active");});
+  const sec=document.getElementById(s[tab]);if(sec)sec.style.display="block";
+  const tb=document.getElementById(t[tab]);if(tb)tb.classList.add("active");
 }
 
 // ── NOTES
