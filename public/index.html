@@ -74,8 +74,6 @@
     .msg.user{text-align:right}
     .msg.user .bubble{background:#4c1d95;padding:8px 12px;border-radius:14px 14px 3px 14px;display:inline-block;max-width:80%;line-height:1.5;text-align:left}
     .msg.ai .bubble{background:#1a1a35;border:1px solid var(--border);padding:10px 13px;border-radius:3px 14px 14px 14px;display:inline-block;max-width:92%;line-height:1.6;color:#ddd6fe}
-    .cursor-blink{display:inline-block;animation:blink 0.7s infinite;color:#a78bfa;font-weight:300}
-    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
     .ai-md p{margin-bottom:6px}.ai-md ul,.ai-md ol{margin:4px 0 4px 15px}.ai-md li{margin-bottom:2px}
     .ai-md h1,.ai-md h2,.ai-md h3{color:#c4b5fd;margin:7px 0 4px}
     .ai-md code{background:#0d0d1f;padding:1px 4px;border-radius:3px;font-family:monospace;font-size:0.8rem;color:#86efac}
@@ -109,26 +107,28 @@
     .progress-bar{height:4px;background:var(--border);border-radius:2px;margin:8px 0;overflow:hidden}
     .progress-fill{height:100%;background:var(--purple);border-radius:2px;transition:width 0.3s;width:0%}
     #installBanner{display:none}
-    #installPopup{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center}
+    #installPopup{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.88);backdrop-filter:blur(8px);align-items:flex-end;justify-content:center}
     #installPopup.show{display:flex;animation:fadeInBg 0.3s ease}
     @keyframes fadeInBg{from{opacity:0}to{opacity:1}}
-    .install-sheet{background:linear-gradient(160deg,#1a0a3a 0%,#0e0e22 100%);border:1px solid #4c1d95;border-radius:24px 24px 0 0;padding:28px 24px 36px;width:100%;max-width:480px;animation:slideUp 0.4s cubic-bezier(.22,.68,0,1.2)}
+    .install-sheet{background:linear-gradient(160deg,#1a0a3a,#0e0e22);border:1px solid #4c1d95;border-radius:24px 24px 0 0;padding:28px 22px 40px;width:100%;max-width:480px;animation:slideUp 0.4s cubic-bezier(.22,.68,0,1.2)}
     @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-    .install-handle{width:40px;height:4px;background:#4c1d95;border-radius:4px;margin:0 auto 20px;opacity:0.6}
+    .install-handle{width:40px;height:4px;background:#4c1d95;border-radius:4px;margin:0 auto 20px;opacity:0.5}
     .install-app-row{display:flex;align-items:center;gap:14px;margin-bottom:18px}
-    .install-icon{width:64px;height:64px;background:linear-gradient(135deg,#7c3aed,#4c1d95);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0;box-shadow:0 4px 20px rgba(124,58,237,0.4)}
-    .install-app-info h2{font-size:1.2rem;font-weight:700;color:#e0d0ff;margin-bottom:2px}
-    .install-app-info p{font-size:0.8rem;color:#888;margin-bottom:4px}
-    .install-rating{display:flex;align-items:center;gap:4px;font-size:0.76rem;color:#fbbf24}
+    .install-icon{width:66px;height:66px;background:linear-gradient(135deg,#7c3aed,#4c1d95);border-radius:18px;display:flex;align-items:center;justify-content:center;font-size:2.2rem;flex-shrink:0;box-shadow:0 6px 24px rgba(124,58,237,0.45)}
+    .install-app-info h2{font-size:1.2rem;font-weight:700;color:#e0d0ff;margin-bottom:3px}
+    .install-app-info .install-dev{font-size:0.76rem;color:#666;margin-bottom:4px}
+    .install-rating{font-size:0.76rem;color:#fbbf24}
     .install-features{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
-    .install-feat{background:#1a1a35;border:1px solid #2a2a4a;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;font-size:0.78rem;color:#c4b5fd}
-    .install-btn-main{width:100%;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:14px;color:white;font-size:1rem;font-weight:700;cursor:pointer;margin-bottom:10px;box-shadow:0 4px 20px rgba(124,58,237,0.4)}
-    .install-btn-skip{width:100%;padding:10px;background:transparent;border:none;color:#666;font-size:0.82rem;cursor:pointer}
-    .install-store-row{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:14px;color:#555;font-size:0.74rem}
-    .ios-steps{display:flex;flex-direction:column;gap:10px;margin:12px 0}
-    .ios-step{display:flex;align-items:center;gap:10px;background:#1a1a35;border-radius:10px;padding:10px 12px}
-    .ios-step-num{width:26px;height:26px;background:#7c3aed;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;color:white}
-    .ios-step p{font-size:0.8rem;color:#c4b5fd;text-align:left}
+    .install-feat{background:#16163a;border:1px solid #2a2a4a;border-radius:10px;padding:9px 11px;display:flex;align-items:center;gap:7px;font-size:0.78rem;color:#c4b5fd}
+    .install-verified{display:flex;align-items:center;justify-content:center;gap:5px;font-size:0.73rem;color:#4ade80;margin-bottom:13px}
+    .install-btn-main{width:100%;padding:15px;background:linear-gradient(135deg,#7c3aed,#5b21b6);border:none;border-radius:14px;color:white;font-size:1.02rem;font-weight:700;cursor:pointer;margin-bottom:10px;box-shadow:0 6px 22px rgba(124,58,237,0.45);letter-spacing:0.2px}
+    .install-btn-skip{width:100%;padding:10px;background:transparent;border:none;color:#555;font-size:0.82rem;cursor:pointer}
+    .ios-steps{display:flex;flex-direction:column;gap:9px;margin:12px 0}
+    .ios-step{display:flex;align-items:center;gap:10px;background:#16163a;border-radius:10px;padding:10px 12px}
+    .ios-step-num{width:26px;height:26px;background:#7c3aed;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0;color:#fff}
+    .ios-step p{font-size:0.8rem;color:#c4b5fd;margin:0}
+    .cursor-blink{display:inline-block;animation:blink 0.7s infinite;color:#a78bfa}
+    @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
     .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1e1e3f;border:1px solid var(--purple);color:#c4b5fd;padding:9px 18px;border-radius:20px;font-size:0.82rem;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
     .toast.show{opacity:1}
     .row{display:flex;gap:6px;align-items:center}
@@ -152,7 +152,7 @@
 </div>
 
 <div class="container">
-  <!-- ── INSTALL POPUP ── -->
+  <!-- ── INSTALL POPUP (Play Store jaisa) ── -->
   <div id="installPopup">
     <div class="install-sheet">
       <div class="install-handle"></div>
@@ -160,29 +160,29 @@
         <div class="install-icon">🧠</div>
         <div class="install-app-info">
           <h2>Second Brain</h2>
-          <p>AI · Notes · Reminders · OCR</p>
-          <div class="install-rating">★★★★★ <span style="color:#666;margin-left:2px">· Free</span></div>
+          <div class="install-dev">Second Brain App</div>
+          <div class="install-rating">★★★★★ &nbsp;Free · No Ads</div>
         </div>
       </div>
       <div class="install-features">
-        <div class="install-feat"><span>🤖</span> AI Chat</div>
-        <div class="install-feat"><span>📝</span> Smart Notes</div>
-        <div class="install-feat"><span>🔔</span> Reminders</div>
-        <div class="install-feat"><span>📰</span> Live News</div>
-        <div class="install-feat"><span>🌐</span> Translator</div>
-        <div class="install-feat"><span>📸</span> OCR Scan</div>
+        <div class="install-feat">🤖 AI Chat</div>
+        <div class="install-feat">📝 Smart Notes</div>
+        <div class="install-feat">🔔 Reminders</div>
+        <div class="install-feat">📰 Live News</div>
+        <div class="install-feat">🌐 Translator</div>
+        <div class="install-feat">📸 OCR Scan</div>
       </div>
+      <div class="install-verified">✅ Verified &nbsp;·&nbsp; 🔒 Safe &nbsp;·&nbsp; 💯 Free Forever</div>
       <div id="androidInstallSection">
-        <div class="install-store-row">✅ Verified · No ads · Free forever</div>
         <button class="install-btn-main" onclick="doInstallPWA()">📲 Install Karo — Free</button>
         <button class="install-btn-skip" onclick="closeInstallPopup()">Abhi nahi, baad mein</button>
       </div>
       <div id="iosInstallSection" style="display:none">
-        <p style="color:#a78bfa;font-weight:600;text-align:center;font-size:0.88rem;margin-bottom:8px">📱 iPhone pe install karo:</p>
+        <p style="color:#a78bfa;font-weight:600;text-align:center;font-size:0.86rem;margin-bottom:8px">📱 iPhone pe install karo:</p>
         <div class="ios-steps">
-          <div class="ios-step"><div class="ios-step-num">1</div><p>Neeche <b>Share button</b> (□↑) dabao</p></div>
-          <div class="ios-step"><div class="ios-step-num">2</div><p><b>"Add to Home Screen"</b> select karo</p></div>
-          <div class="ios-step"><div class="ios-step-num">3</div><p>Upar <b>"Add"</b> dabao — done!</p></div>
+          <div class="ios-step"><div class="ios-step-num">1</div><p>Neeche <b>Share (□↑)</b> button dabao</p></div>
+          <div class="ios-step"><div class="ios-step-num">2</div><p><b>"Add to Home Screen"</b> choose karo</p></div>
+          <div class="ios-step"><div class="ios-step-num">3</div><p>Upar <b>"Add"</b> dabao — done! 🎉</p></div>
         </div>
         <button class="install-btn-skip" onclick="closeInstallPopup()">Samajh gaya ✓</button>
       </div>
@@ -199,8 +199,6 @@
         <p style="color:#ccc;font-size:0.88rem;line-height:1.7">1. Browser ke upar <b>3 dots menu (⋮)</b> click karo<br>2. <b>"Add to Home screen"</b> ya <b>"Install app"</b> click karo<br>3. "Install" confirm karo</p>
         <p style="color:#a78bfa;font-weight:600;margin:12px 0 8px">iPhone (Safari):</p>
         <p style="color:#ccc;font-size:0.88rem;line-height:1.7">1. Safari mein open karo<br>2. Neeche <b>Share button (□↑)</b> click karo<br>3. <b>"Add to Home Screen"</b> click karo<br>4. "Add" confirm karo</p>
-        <p style="color:#a78bfa;font-weight:600;margin:12px 0 8px">Computer (Chrome/Edge):</p>
-        <p style="color:#ccc;font-size:0.88rem;line-height:1.7">1. Address bar mein <b>Install icon (⊕)</b> click karo<br>2. Ya 3 dots → "Install Second Brain"</p>
       </div>
       <div class="modal-btns"><button onclick="document.getElementById('installModal').classList.remove('open')">Theek hai ✓</button></div>
     </div>
@@ -425,6 +423,17 @@
             <option value="0">Sirf time pe</option>
           </select>
         </div>
+        <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
+          <select id="remAlarmSound" style="margin-bottom:0;flex:1">
+            <option value="beep">🔔 Beep Alarm</option>
+            <option value="bell">🔕 Bell</option>
+            <option value="voice" selected>🗣 Voice + Notification</option>
+            <option value="vibrate">📳 Sirf Vibrate</option>
+          </select>
+          <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--text2);flex-shrink:0;cursor:pointer">
+            <input type="checkbox" id="remRepeatAlarm" style="width:16px;height:16px;margin:0;accent-color:var(--purple)"> Repeat
+          </label>
+        </div>
         <button onclick="addReminder()" style="width:100%">Set Reminder 🔔</button>
         <p style="font-size:0.72rem;color:var(--text2);margin-top:7px">⚠️ Aapke chune hue time pe aur exact time pe voice + notification milega</p>
       </div>
@@ -510,6 +519,7 @@
             <button class="secondary sm" onclick="copyOCR()">📋 Copy</button>
             <button class="secondary sm" onclick="speakText(document.getElementById('ocrResult').textContent)">🔊 Sunao</button>
             <button class="secondary sm" onclick="saveOCRAsNote()">📝 Note Save</button>
+            <button class="danger sm" onclick="clearOCR()">🗑 Clear</button>
           </div>
         </div>
         <div class="progress-bar"><div class="progress-fill" id="ocrProgress"></div></div>
@@ -776,81 +786,50 @@ function renderNews(articles) {
   showToast("✅ "+ articles.length +" news mili!");
 }
 
-// ── AI CHAT — Streaming (word by word, Gemini Flash ⚡)
+// ── AI CHAT — Streaming (Gemini Flash ⚡ — fast + free)
 async function sendMsg(){
   const input=document.getElementById("chatInput");
   const msg=input.value.trim();if(!msg)return;
   const chatBox=document.getElementById("chatBox");
   input.value="";chatCount++;updateStats();
-
   chatBox.innerHTML+=`<div class="msg user"><div class="msg-label" style="text-align:right">Aap</div><div class="bubble">${esc(msg)}</div></div>`;
   chatBox.scrollTop=chatBox.scrollHeight;
-
   const tid="t_"+Date.now();
   chatBox.innerHTML+=`<div id="${tid}" class="typing">⏳ Soch raha hai...</div>`;
   chatBox.scrollTop=chatBox.scrollHeight;
-
   try{
     let newsContext=[];
-    if(isNewsQuery(msg)){
-      document.getElementById(tid).textContent="📰 News dekh raha hai...";
-      newsContext=await fetchNewsForChat(msg);
-    }
-
+    if(isNewsQuery(msg)){document.getElementById(tid).textContent="📰 News dekh raha hai...";newsContext=await fetchNewsForChat(msg);}
     const aid="ai_"+Date.now();
     document.getElementById(tid)?.remove();
     chatBox.innerHTML+=`<div class="msg ai"><div class="msg-label">AI 🤖</div><div class="bubble ai-md" id="${aid}"><span class="cursor-blink">▍</span></div></div>`;
     chatBox.scrollTop=chatBox.scrollHeight;
-
-    const r=await fetch(BASE+"/chat/stream",{
-      method:"POST",
-      headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},
-      body:JSON.stringify({msg,history:chatHistory,newsContext})
-    });
-
+    const r=await fetch(BASE+"/chat/stream",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({msg,history:chatHistory,newsContext})});
     if(!r.ok||!r.body){
-      // Fallback non-streaming
       const d=await r.json().catch(()=>({error:"Server error"}));
       const reply=d.reply||d.error||"Koi jawab nahi.";
-      const el=document.getElementById(aid);
-      if(el)el.innerHTML=typeof marked!=="undefined"?marked.parse(reply):esc(reply);
+      const el=document.getElementById(aid);if(el)el.innerHTML=typeof marked!=="undefined"?marked.parse(reply):esc(reply);
       lastAIReply=reply;chatHistory.push({role:"user",text:msg});chatHistory.push({role:"model",text:reply});
-      if(chatHistory.length>20)chatHistory=chatHistory.slice(-20);
-      chatBox.scrollTop=chatBox.scrollHeight;return;
+      if(chatHistory.length>20)chatHistory=chatHistory.slice(-20);return;
     }
-
-    const reader=r.body.getReader();
-    const decoder=new TextDecoder();
-    let fullText="";let buffer="";
-
+    const reader=r.body.getReader();const decoder=new TextDecoder();let fullText="";let buffer="";
     while(true){
-      const{done,value}=await reader.read();
-      if(done)break;
+      const{done,value}=await reader.read();if(done)break;
       buffer+=decoder.decode(value,{stream:true});
-      const lines=buffer.split("\n");
-      buffer=lines.pop();
+      const lines=buffer.split("\n");buffer=lines.pop();
       for(const line of lines){
         if(!line.startsWith("data: "))continue;
         const raw=line.replace("data: ","").trim();
         if(raw==="[DONE]"){
-          // Final markdown render
           const el=document.getElementById(aid);
           if(el){el.innerHTML=typeof marked!=="undefined"?marked.parse(fullText):esc(fullText);}
-          lastAIReply=fullText;
-          chatHistory.push({role:"user",text:msg});chatHistory.push({role:"model",text:fullText});
-          if(chatHistory.length>20)chatHistory=chatHistory.slice(-20);
-          chatBox.scrollTop=chatBox.scrollHeight;
-          break;
+          lastAIReply=fullText;chatHistory.push({role:"user",text:msg});chatHistory.push({role:"model",text:fullText});
+          if(chatHistory.length>20)chatHistory=chatHistory.slice(-20);chatBox.scrollTop=chatBox.scrollHeight;break;
         }
         try{
           const parsed=JSON.parse(raw);
           if(parsed.error){const el=document.getElementById(aid);if(el)el.innerHTML=`<span style="color:var(--red)">❌ ${esc(parsed.error)}</span>`;return;}
-          if(parsed.token){
-            fullText+=parsed.token;
-            const el=document.getElementById(aid);
-            if(el){el.textContent=fullText;el.innerHTML+=`<span class="cursor-blink">▍</span>`;}
-            chatBox.scrollTop=chatBox.scrollHeight;
-          }
+          if(parsed.token){fullText+=parsed.token;const el=document.getElementById(aid);if(el){el.textContent=fullText;el.innerHTML+=`<span class="cursor-blink">▍</span>`;}chatBox.scrollTop=chatBox.scrollHeight;}
         }catch{}
       }
     }
@@ -942,13 +921,59 @@ function addReminder(){
   const dt=document.getElementById("remDateTime").value;
   const repeat=document.getElementById("remRepeat").value;
   const alertMins=parseInt(document.getElementById("remAlertTime").value)||15;
+  const alarmSound=document.getElementById("remAlarmSound").value;
+  const repeatAlarm=document.getElementById("remRepeatAlarm").checked;
   if(!title||!dt)return showToast("❌ Title aur time chahiye!");
-  reminders.push({id:Date.now(),title,time:new Date(dt).getTime(),repeat,alertMins,done:false});
+  reminders.push({id:Date.now(),title,time:new Date(dt).getTime(),repeat,alertMins,alarmSound,repeatAlarm,done:false});
   saveReminders();
   document.getElementById("remTitle").value="";
   document.getElementById("remDateTime").value="";
   renderReminders();
-  showToast("✅ Reminder set! 15 min pehle alert aayega.");
+  showToast("✅ Reminder set! Alert milega.");
+}
+
+// Alarm sound bajao
+function playAlarmSound(type, repeatAlarm){
+  if(type==="beep"||type==="bell"){
+    const ctx=new(window.AudioContext||window.webkitAudioContext)();
+    const beepCount=type==="bell"?3:1;
+    for(let i=0;i<beepCount;i++){
+      const osc=ctx.createOscillator();
+      const gain=ctx.createGain();
+      osc.connect(gain);gain.connect(ctx.destination);
+      osc.frequency.value=type==="bell"?880:660;
+      osc.type="sine";
+      gain.gain.setValueAtTime(0.8,ctx.currentTime+i*0.4);
+      gain.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+i*0.4+0.3);
+      osc.start(ctx.currentTime+i*0.4);
+      osc.stop(ctx.currentTime+i*0.4+0.3);
+    }
+    if(repeatAlarm){
+      let count=0;
+      const interval=setInterval(()=>{
+        if(count++>4)return clearInterval(interval);
+        const o=ctx.createOscillator();const g=ctx.createGain();
+        o.connect(g);g.connect(ctx.destination);
+        o.frequency.value=type==="bell"?880:660;o.type="sine";
+        g.gain.setValueAtTime(0.6,ctx.currentTime);
+        g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+0.3);
+        o.start();o.stop(ctx.currentTime+0.3);
+      },1500);
+    }
+  }else if(type==="vibrate"){
+    if(navigator.vibrate)navigator.vibrate(repeatAlarm?[300,200,300,200,300]:[300]);
+  }
+}
+
+function clearOCR(){
+  document.getElementById("ocrResult").textContent="";
+  document.getElementById("ocrResultSection").style.display="none";
+  document.getElementById("ocrPreview").style.display="none";
+  document.getElementById("ocrPreview").src="";
+  document.getElementById("ocrBtn").style.display="none";
+  document.getElementById("pdfText").value="";
+  ocrImageData=null;
+  showToast("🗑 Clear ho gaya!");
 }
 
 function saveReminders(){localStorage.setItem("sb_reminders",JSON.stringify(reminders));updateStats();}
@@ -996,8 +1021,14 @@ function startReminderChecker(){
 }
 
 function fireReminder(rem,when){
-  if(Notification.permission==="granted")new Notification("🔔 Second Brain",{body:`${when}: ${rem.title}`});
-  speakText(`${when} aapka reminder hai: ${rem.title}`);
+  // Alarm sound bajao
+  const sound=rem.alarmSound||"voice";
+  if(sound!=="vibrate")playAlarmSound(sound,rem.repeatAlarm);
+  if(sound==="vibrate"&&navigator.vibrate)navigator.vibrate(rem.repeatAlarm?[400,200,400,200,400]:[400]);
+  // Voice alert
+  if(sound==="voice"||sound==="bell")speakText(`${when} aapka reminder hai: ${rem.title}`);
+  // Notification
+  if(Notification.permission==="granted")new Notification("🔔 Second Brain",{body:`${when}: ${rem.title}`,icon:"/icon.png"});
   showToast(`${when}: ${rem.title}`);
 }
 
