@@ -116,11 +116,11 @@ app.delete("/notes/:id", authMiddleware, async (req, res) => {
 app.get("/news", authMiddleware, async (req, res) => {
   try {
     const query = req.query.q || "India";
-    const url = `https://newsapi.org/v2/everything?q=${encodeURIComponent(query)}&sortBy=publishedAt&pageSize=5&apiKey=${NEWS_KEY}`;
+    const GNEWS_KEY = process.env.GNEWS_KEY || "";
+    const url = `https://gnews.io/api/v4/search?q=${encodeURIComponent(query)}&lang=hi&country=in&max=8&sortby=publishedAt&apikey=${GNEWS_KEY}`;
     const r = await fetch(url);
     const data = await r.json();
-    if (data.status !== "ok") return res.json({ articles: [] });
-    const articles = data.articles.map(a => ({
+    const articles = (data.articles || []).map(a => ({
       title: a.title,
       description: a.description,
       url: a.url,
