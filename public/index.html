@@ -133,8 +133,29 @@
 
 <div class="container">
   <div id="installBanner">
-    <p>📱 Phone pe install karein!</p>
-    <button class="sm" onclick="installPWA()">Install ↓</button>
+    <p>📱 App install karein!</p>
+    <button class="sm" onclick="installPWA()" id="installBtn">📲 Install</button>
+    <button class="sm secondary" onclick="showInstallGuide()">❓ Kaise?</button>
+  </div>
+  
+  <!-- Install Guide Modal -->
+  <div class="modal-overlay" id="installModal" onclick="if(event.target===this)document.getElementById('installModal').classList.remove('open')">
+    <div class="modal">
+      <h3>📱 App Install Kaise Karein</h3>
+      <div style="margin-top:10px">
+        <p style="color:#a78bfa;font-weight:600;margin-bottom:8px">Android (Chrome):</p>
+        <p style="color:#ccc;font-size:0.88rem;line-height:1.7">1. Browser ke upar <b>3 dots menu (⋮)</b> click karo<br>2. <b>"Add to Home screen"</b> ya <b>"Install app"</b> click karo<br>3. "Install" confirm karo</p>
+        
+        <p style="color:#a78bfa;font-weight:600;margin:12px 0 8px">iPhone (Safari):</p>
+        <p style="color:#ccc;font-size:0.88rem;line-height:1.7">1. Safari mein open karo<br>2. Neeche <b>Share button (□↑)</b> click karo<br>3. <b>"Add to Home Screen"</b> click karo<br>4. "Add" confirm karo</p>
+        
+        <p style="color:#a78bfa;font-weight:600;margin:12px 0 8px">Computer (Chrome/Edge):</p>
+        <p style="color:#ccc;font-size:0.88rem;line-height:1.7">1. Address bar mein <b>Install icon (⊕)</b> click karo<br>2. Ya 3 dots → "Install Second Brain"</p>
+      </div>
+      <div class="modal-btns">
+        <button onclick="document.getElementById('installModal').classList.remove('open')">Theek hai ✓</button>
+      </div>
+    </div>
   </div>
 
   <!-- AUTH -->
@@ -248,10 +269,56 @@
                  onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg();}">
           <button onclick="sendMsg()">➤</button>
         </div>
-        <div style="margin-top:7px;display:flex;gap:5px;flex-wrap:wrap">
+        <div style="margin-top:7px;display:flex;gap:5px;flex-wrap:wrap;align-items:center">
           <button class="secondary sm" onclick="speakLast()">🔊 Sunao</button>
           <button class="secondary sm" onclick="stopSpeaking()">⏹ Stop</button>
           <button class="secondary sm" onclick="saveNoteFromChat()">📝 Note Banao</button>
+          <button class="secondary sm" onclick="openVoiceSettings()">⚙️ Awaaz</button>
+        </div>
+        
+        <!-- Voice Settings Panel -->
+        <div id="voiceSettingsPanel" style="display:none;background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;margin-top:8px">
+          <div style="font-size:0.82rem;color:#a78bfa;font-weight:600;margin-bottom:10px">🔊 Awaaz Settings</div>
+          
+          <div style="margin-bottom:8px">
+            <label style="font-size:0.75rem;color:var(--text2)">🎚️ Speed: <span id="rateVal">0.85</span>x</label>
+            <input type="range" id="voiceRate" min="0.5" max="1.5" step="0.05" value="0.85"
+                   oninput="updateVoiceSetting('rate', this.value)"
+                   style="width:100%;margin:4px 0 0;height:4px;accent-color:#7c3aed">
+            <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--text3)">
+              <span>🐢 Slow</span><span>Normal</span><span>⚡ Fast</span>
+            </div>
+          </div>
+          
+          <div style="margin-bottom:8px">
+            <label style="font-size:0.75rem;color:var(--text2)">🎵 Pitch: <span id="pitchVal">1.0</span></label>
+            <input type="range" id="voicePitch" min="0.5" max="2.0" step="0.1" value="1.0"
+                   oninput="updateVoiceSetting('pitch', this.value)"
+                   style="width:100%;margin:4px 0 0;height:4px;accent-color:#7c3aed">
+            <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--text3)">
+              <span>↓ Low</span><span>Normal</span><span>↑ High</span>
+            </div>
+          </div>
+          
+          <div style="margin-bottom:10px">
+            <label style="font-size:0.75rem;color:var(--text2)">🔈 Volume: <span id="volVal">1.0</span></label>
+            <input type="range" id="voiceVolume" min="0.1" max="1.0" step="0.1" value="1.0"
+                   oninput="updateVoiceSetting('volume', this.value)"
+                   style="width:100%;margin:4px 0 0;height:4px;accent-color:#7c3aed">
+          </div>
+          
+          <div style="margin-bottom:10px">
+            <label style="font-size:0.75rem;color:var(--text2);display:block;margin-bottom:4px">🎤 Hindi Voice Select:</label>
+            <select id="voiceSelect" style="margin-bottom:0;font-size:0.82rem" onchange="setManualVoice(this.value)">
+              <option value="auto">Auto (Best available)</option>
+            </select>
+          </div>
+          
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            <button class="secondary sm" onclick="testVoice()">▶️ Test Karo</button>
+            <button class="secondary sm" onclick="resetVoice()">↩️ Reset</button>
+            <button class="sm" onclick="saveVoiceSettings()">💾 Save</button>
+          </div>
         </div>
       </div>
     </div>
@@ -293,13 +360,25 @@
           <button class="icon secondary" id="voiceReminderBtn" onclick="startVoice('reminder')">🎤</button>
         </div>
         <input id="remDateTime" type="datetime-local" style="margin-bottom:8px">
-        <select id="remRepeat" style="margin-bottom:8px">
-          <option value="once">Ek baar</option>
-          <option value="daily">Roz</option>
-          <option value="weekly">Har hafte</option>
-        </select>
+        <div style="display:flex;gap:8px;margin-bottom:8px">
+          <select id="remRepeat" style="margin-bottom:0;flex:1">
+            <option value="once">Ek baar</option>
+            <option value="daily">Roz</option>
+            <option value="weekly">Har hafte</option>
+          </select>
+          <select id="remAlertTime" style="margin-bottom:0;flex:1">
+            <option value="5">5 min pehle</option>
+            <option value="10">10 min pehle</option>
+            <option value="15" selected>15 min pehle</option>
+            <option value="30">30 min pehle</option>
+            <option value="60">1 ghanta pehle</option>
+            <option value="120">2 ghante pehle</option>
+            <option value="1440">1 din pehle</option>
+            <option value="0">Sirf time pe</option>
+          </select>
+        </div>
         <button onclick="addReminder()" style="width:100%">Set Reminder 🔔</button>
-        <p style="font-size:0.72rem;color:var(--text2);margin-top:7px">⚠️ 15 min pehle aur time pe voice + browser notification milega</p>
+        <p style="font-size:0.72rem;color:var(--text2);margin-top:7px">⚠️ Aapke chune hue time pe aur exact time pe voice + notification milega</p>
       </div>
       <div class="card">
         <div class="card-title">📋 Aapke Reminders</div>
@@ -437,7 +516,21 @@ let reminders=JSON.parse(localStorage.getItem("sb_reminders")||"[]");
 let ocrImageData=null, transTimeout=null;
 
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;document.getElementById("installBanner").classList.add("show");});
-async function installPWA(){if(!deferredPrompt)return;deferredPrompt.prompt();await deferredPrompt.userChoice;document.getElementById("installBanner").classList.remove("show");deferredPrompt=null;}
+async function installPWA(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    const {outcome}=await deferredPrompt.userChoice;
+    if(outcome==="accepted"){
+      document.getElementById("installBanner").classList.remove("show");
+    }
+    deferredPrompt=null;
+  } else {
+    showInstallGuide();
+  }
+}
+function showInstallGuide(){
+  document.getElementById("installModal").classList.add("open");
+}
 
 if(token) showApp();
 requestNotificationPermission();
@@ -738,8 +831,9 @@ function addReminder(){
   const title=document.getElementById("remTitle").value.trim();
   const dt=document.getElementById("remDateTime").value;
   const repeat=document.getElementById("remRepeat").value;
+  const alertMins=parseInt(document.getElementById("remAlertTime").value)||15;
   if(!title||!dt)return showToast("❌ Title aur time chahiye!");
-  reminders.push({id:Date.now(),title,time:new Date(dt).getTime(),repeat,done:false});
+  reminders.push({id:Date.now(),title,time:new Date(dt).getTime(),repeat,alertMins,done:false});
   saveReminders();
   document.getElementById("remTitle").value="";
   document.getElementById("remDateTime").value="";
@@ -776,8 +870,17 @@ function startReminderChecker(){
     reminders.forEach(r=>{
       if(r.done)return;
       const diff=r.time-now;
-      if(diff>870000&&diff<930000)fireReminder(r,"⏰ 15 minute mein");
-      if(diff>-30000&&diff<30000){fireReminder(r,"🔔 Abhi");r.done=true;saveReminders();renderReminders();}
+      const alertMs=(r.alertMins||15)*60*1000;
+      const alertWindow=30000; // 30 second window
+      // Custom alert time pehle
+      if(r.alertMins>0 && diff>(alertMs-alertWindow) && diff<(alertMs+alertWindow)){
+        fireReminder(r,"⏰ "+( r.alertMins>=60 ? (r.alertMins/60)+" ghante" : r.alertMins+" minute")+" mein");
+      }
+      // Exact time pe
+      if(diff>-30000&&diff<30000){
+        fireReminder(r,"🔔 Abhi ka reminder");
+        r.done=true;saveReminders();renderReminders();
+      }
     });
   },30000);
 }
@@ -949,16 +1052,81 @@ function startVoice(target){
 }
 
 // ── TTS
-function speakText(text){
-  if(!text)return;
-  stopSpeaking();
-  const clean=text.replace(/<[^>]*>/g,"").replace(/\*+/g,"").substring(0,600);
-  const utt=new SpeechSynthesisUtterance(clean);
-  utt.lang=/[\u0900-\u097F]/.test(clean)?"hi-IN":"en-US";
-  utt.rate=0.9;
-  window.speechSynthesis.speak(utt);
+// ── VOICE SETTINGS
+let voiceSettings = JSON.parse(localStorage.getItem("sb_voice") || '{"rate":0.85,"pitch":1.0,"volume":1.0}');
+
+function getBestHindiVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  // Best Hindi voices priority order
+  const hindiPriority = [
+    "Google हिन्दी",
+    "Google Hindi",
+    "Microsoft Swara Online",
+    "Microsoft Hemant Online",
+    "hi-IN",
+    "hin",
+  ];
+  for(const pref of hindiPriority) {
+    const found = voices.find(v => v.name.includes(pref) || v.lang === pref);
+    if(found) return found;
+  }
+  // Fallback - any Hindi voice
+  return voices.find(v => v.lang.startsWith("hi")) || null;
 }
-function stopSpeaking(){window.speechSynthesis.cancel();}
+
+function getBestEnglishVoice() {
+  const voices = window.speechSynthesis.getVoices();
+  const enPriority = ["Google US English", "Microsoft David", "Microsoft Zira", "en-US", "en-IN"];
+  for(const pref of enPriority) {
+    const found = voices.find(v => v.name.includes(pref) || v.lang === pref);
+    if(found) return found;
+  }
+  return voices.find(v => v.lang.startsWith("en")) || null;
+}
+
+function speakText(text) {
+  if(!text) return;
+  stopSpeaking();
+  const clean = text
+    .replace(/<[^>]*>/g, "")
+    .replace(/\*+/g, "")
+    .replace(/#{1,6}\s/g, "")
+    .replace(/\[.*?\]\(.*?\)/g, "")
+    .replace(/`{1,3}/g, "")
+    .substring(0, 800);
+  
+  const isHindi = /[ऀ-ॿ]/.test(clean);
+  const utt = new SpeechSynthesisUtterance(clean);
+  
+  // Language set karo
+  utt.lang = isHindi ? "hi-IN" : "en-IN";
+  
+  // Best voice select karo
+  const loadVoices = () => {
+    const voice = isHindi ? getBestHindiVoice() : getBestEnglishVoice();
+    if(voice) {
+      utt.voice = voice;
+      console.log("Using voice:", voice.name, voice.lang);
+    }
+    utt.rate   = voiceSettings.rate;
+    utt.pitch  = voiceSettings.pitch;
+    utt.volume = voiceSettings.volume;
+    window.speechSynthesis.speak(utt);
+  };
+  
+  // Voices load hone ka wait karo
+  if(window.speechSynthesis.getVoices().length > 0) {
+    loadVoices();
+  } else {
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    // Fallback
+    setTimeout(() => {
+      if(!window.speechSynthesis.speaking) loadVoices();
+    }, 500);
+  }
+}
+
+function stopSpeaking() { window.speechSynthesis.cancel(); }
 
 // ── STATS
 function updateStats(){
@@ -974,6 +1142,89 @@ function showToast(msg){const t=document.getElementById("toast");t.textContent=m
 function esc(str){return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/\n/g,"<br>");}
 
 if("serviceWorker"in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
+
+// ── VOICE SETTINGS FUNCTIONS
+let manualVoice = null;
+
+function openVoiceSettings() {
+  const panel = document.getElementById("voiceSettingsPanel");
+  panel.style.display = panel.style.display === "none" ? "block" : "none";
+  if(panel.style.display === "block") {
+    loadVoiceOptions();
+    // Set current values
+    document.getElementById("voiceRate").value   = voiceSettings.rate;
+    document.getElementById("voicePitch").value  = voiceSettings.pitch;
+    document.getElementById("voiceVolume").value = voiceSettings.volume;
+    document.getElementById("rateVal").textContent  = voiceSettings.rate;
+    document.getElementById("pitchVal").textContent = voiceSettings.pitch;
+    document.getElementById("volVal").textContent   = voiceSettings.volume;
+  }
+}
+
+function loadVoiceOptions() {
+  const sel = document.getElementById("voiceSelect");
+  const voices = window.speechSynthesis.getVoices();
+  // Clear existing options except auto
+  sel.innerHTML = '<option value="auto">Auto (Best available)</option>';
+  // Add all available voices
+  voices.forEach((v, i) => {
+    const opt = document.createElement("option");
+    opt.value = i;
+    opt.textContent = v.name + " (" + v.lang + ")";
+    // Highlight Hindi voices
+    if(v.lang.startsWith("hi")) opt.textContent = "⭐ " + opt.textContent;
+    sel.appendChild(opt);
+  });
+}
+
+function setManualVoice(val) {
+  if(val === "auto") { manualVoice = null; return; }
+  manualVoice = window.speechSynthesis.getVoices()[parseInt(val)];
+  showToast("🎤 Voice: " + manualVoice.name);
+}
+
+function updateVoiceSetting(key, val) {
+  voiceSettings[key] = parseFloat(val);
+  if(key === "rate")   document.getElementById("rateVal").textContent  = parseFloat(val).toFixed(2);
+  if(key === "pitch")  document.getElementById("pitchVal").textContent = parseFloat(val).toFixed(1);
+  if(key === "volume") document.getElementById("volVal").textContent   = parseFloat(val).toFixed(1);
+}
+
+function testVoice() {
+  const isHindi = true;
+  speakText("नमस्ते! मैं आपका Second Brain AI assistant हूँ। आवाज़ कैसी है?");
+}
+
+function resetVoice() {
+  voiceSettings = {rate:0.85, pitch:1.0, volume:1.0};
+  manualVoice = null;
+  document.getElementById("voiceRate").value   = 0.85;
+  document.getElementById("voicePitch").value  = 1.0;
+  document.getElementById("voiceVolume").value = 1.0;
+  document.getElementById("rateVal").textContent  = "0.85";
+  document.getElementById("pitchVal").textContent = "1.0";
+  document.getElementById("volVal").textContent   = "1.0";
+  document.getElementById("voiceSelect").value = "auto";
+  localStorage.removeItem("sb_voice");
+  showToast("↩️ Voice reset ho gaya!");
+}
+
+function saveVoiceSettings() {
+  localStorage.setItem("sb_voice", JSON.stringify(voiceSettings));
+  showToast("💾 Voice settings save ho gayi!");
+}
+
+// Override speakText to use manual voice if set
+const _originalSpeak = speakText;
+window.addEventListener("load", () => {
+  // Load voices after page load
+  window.speechSynthesis.getVoices();
+  if(window.speechSynthesis.onvoiceschanged !== undefined) {
+    window.speechSynthesis.onvoiceschanged = () => {
+      console.log("Voices loaded:", window.speechSynthesis.getVoices().length);
+    };
+  }
+});
 </script>
 </body>
 </html>
