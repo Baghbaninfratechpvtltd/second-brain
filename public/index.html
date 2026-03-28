@@ -106,9 +106,42 @@
     .ocr-result{background:var(--bg3);border:1px solid var(--border);border-radius:10px;padding:12px;min-height:80px;font-size:0.86rem;line-height:1.6;white-space:pre-wrap;color:var(--text)}
     .progress-bar{height:4px;background:var(--border);border-radius:2px;margin:8px 0;overflow:hidden}
     .progress-fill{height:100%;background:var(--purple);border-radius:2px;transition:width 0.3s;width:0%}
-    #installBanner{display:none;background:linear-gradient(135deg,#3b1d8a,#1d1d5e);border:1px solid #5b3fa0;border-radius:11px;padding:11px 14px;margin-bottom:12px;align-items:center;justify-content:space-between;gap:8px}
-    #installBanner.show{display:flex}
-    #installBanner p{font-size:0.83rem;color:#c4b5fd}
+    #installBanner{display:none}
+    /* ── Beautiful Install Popup ── */
+    #installPopup{
+      display:none;position:fixed;inset:0;z-index:9999;
+      background:rgba(0,0,0,0.85);backdrop-filter:blur(6px);
+      align-items:flex-end;justify-content:center;padding:0;
+    }
+    #installPopup.show{display:flex;animation:fadeInBg 0.3s ease}
+    @keyframes fadeInBg{from{opacity:0}to{opacity:1}}
+    .install-sheet{
+      background:linear-gradient(160deg,#1a0a3a 0%,#0e0e22 100%);
+      border:1px solid #4c1d95;border-radius:24px 24px 0 0;
+      padding:28px 24px 36px;width:100%;max-width:480px;
+      animation:slideUp 0.4s cubic-bezier(.22,.68,0,1.2);
+    }
+    @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+    .install-handle{width:40px;height:4px;background:#4c1d95;border-radius:4px;margin:0 auto 20px;opacity:0.6}
+    .install-app-row{display:flex;align-items:center;gap:14px;margin-bottom:18px}
+    .install-icon{width:64px;height:64px;background:linear-gradient(135deg,#7c3aed,#4c1d95);border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:2rem;flex-shrink:0;box-shadow:0 4px 20px rgba(124,58,237,0.4)}
+    .install-app-info h2{font-size:1.2rem;font-weight:700;color:#e0d0ff;margin-bottom:2px}
+    .install-app-info p{font-size:0.8rem;color:#888;margin-bottom:4px}
+    .install-rating{display:flex;align-items:center;gap:4px;font-size:0.76rem;color:#fbbf24}
+    .install-features{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:20px}
+    .install-feat{background:#1a1a35;border:1px solid #2a2a4a;border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:8px;font-size:0.78rem;color:#c4b5fd}
+    .install-feat span{font-size:1.1rem}
+    .install-btn-main{width:100%;padding:14px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:none;border-radius:14px;color:white;font-size:1rem;font-weight:700;cursor:pointer;letter-spacing:0.3px;margin-bottom:10px;box-shadow:0 4px 20px rgba(124,58,237,0.4);transition:transform 0.15s}
+    .install-btn-main:active{transform:scale(0.98)}
+    .install-btn-skip{width:100%;padding:10px;background:transparent;border:none;color:#666;font-size:0.82rem;cursor:pointer}
+    .install-store-row{display:flex;align-items:center;justify-content:center;gap:6px;margin-bottom:16px;color:#555;font-size:0.74rem}
+    .install-divider{height:1px;background:#2a2a4a;margin:14px 0}
+    /* iOS guide */
+    .ios-guide{display:none;text-align:center;padding:8px 0}
+    .ios-steps{display:flex;flex-direction:column;gap:10px;margin:12px 0}
+    .ios-step{display:flex;align-items:center;gap:10px;background:#1a1a35;border-radius:10px;padding:10px 12px}
+    .ios-step-num{width:26px;height:26px;background:#7c3aed;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;flex-shrink:0}
+    .ios-step p{font-size:0.8rem;color:#c4b5fd;text-align:left}
     .toast{position:fixed;bottom:22px;left:50%;transform:translateX(-50%);background:#1e1e3f;border:1px solid var(--purple);color:#c4b5fd;padding:9px 18px;border-radius:20px;font-size:0.82rem;z-index:999;opacity:0;transition:opacity 0.3s;pointer-events:none;white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
     .toast.show{opacity:1}
     .row{display:flex;gap:6px;align-items:center}
@@ -132,11 +165,71 @@
 </div>
 
 <div class="container">
-  <div id="installBanner">
-    <p>📱 App install karein!</p>
-    <button class="sm" onclick="installPWA()" id="installBtn">📲 Install</button>
-    <button class="sm secondary" onclick="showInstallGuide()">❓ Kaise?</button>
+  <!-- ── INSTALL POPUP (Play Store jaisa feel) ── -->
+  <div id="installPopup">
+    <div class="install-sheet">
+      <div class="install-handle"></div>
+
+      <!-- App Info Row -->
+      <div class="install-app-row">
+        <div class="install-icon">🧠</div>
+        <div class="install-app-info">
+          <h2>Second Brain</h2>
+          <p>by Second Brain App</p>
+          <div class="install-rating">
+            ★★★★★ <span style="color:#666;margin-left:2px">· Free</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Features Grid -->
+      <div class="install-features">
+        <div class="install-feat"><span>🤖</span> AI Chat</div>
+        <div class="install-feat"><span>📝</span> Smart Notes</div>
+        <div class="install-feat"><span>🔔</span> Reminders</div>
+        <div class="install-feat"><span>📰</span> Live News</div>
+        <div class="install-feat"><span>🌐</span> Translator</div>
+        <div class="install-feat"><span>📸</span> OCR Scan</div>
+      </div>
+
+      <!-- Android Install -->
+      <div id="androidInstallSection">
+        <div class="install-store-row">
+          <span>✅</span> Verified · No ads · Free forever
+        </div>
+        <button class="install-btn-main" onclick="doInstallPWA()" id="mainInstallBtn">
+          📲 Install Karo — Free
+        </button>
+        <button class="install-btn-skip" onclick="closeInstallPopup()">
+          Abhi nahi, baad mein
+        </button>
+      </div>
+
+      <!-- iOS Guide (auto-show on iOS) -->
+      <div id="iosInstallSection" style="display:none">
+        <div class="install-divider"></div>
+        <p style="color:#a78bfa;font-weight:600;text-align:center;font-size:0.88rem;margin-bottom:8px">📱 iPhone mein install karo:</p>
+        <div class="ios-steps">
+          <div class="ios-step">
+            <div class="ios-step-num">1</div>
+            <p>Neeche <b>Share button</b> (□↑) dabao</p>
+          </div>
+          <div class="ios-step">
+            <div class="ios-step-num">2</div>
+            <p><b>"Add to Home Screen"</b> select karo</p>
+          </div>
+          <div class="ios-step">
+            <div class="ios-step-num">3</div>
+            <p>Upar <b>"Add"</b> dabao — app install!</p>
+          </div>
+        </div>
+        <button class="install-btn-skip" onclick="closeInstallPopup()">Samajh gaya ✓</button>
+      </div>
+    </div>
   </div>
+
+  <!-- OLD install banner (hidden, kept for compat) -->
+  <div id="installBanner"></div>
   
   <!-- Install Guide Modal -->
   <div class="modal-overlay" id="installModal" onclick="if(event.target===this)document.getElementById('installModal').classList.remove('open')">
@@ -145,10 +238,8 @@
       <div style="margin-top:10px">
         <p style="color:#a78bfa;font-weight:600;margin-bottom:8px">Android (Chrome):</p>
         <p style="color:#ccc;font-size:0.88rem;line-height:1.7">1. Browser ke upar <b>3 dots menu (⋮)</b> click karo<br>2. <b>"Add to Home screen"</b> ya <b>"Install app"</b> click karo<br>3. "Install" confirm karo</p>
-        
         <p style="color:#a78bfa;font-weight:600;margin:12px 0 8px">iPhone (Safari):</p>
         <p style="color:#ccc;font-size:0.88rem;line-height:1.7">1. Safari mein open karo<br>2. Neeche <b>Share button (□↑)</b> click karo<br>3. <b>"Add to Home Screen"</b> click karo<br>4. "Add" confirm karo</p>
-        
         <p style="color:#a78bfa;font-weight:600;margin:12px 0 8px">Computer (Chrome/Edge):</p>
         <p style="color:#ccc;font-size:0.88rem;line-height:1.7">1. Address bar mein <b>Install icon (⊕)</b> click karo<br>2. Ya 3 dots → "Install Second Brain"</p>
       </div>
@@ -515,22 +606,62 @@ let isRecording=false, recognition=null, voiceTarget=null, lastAIReply="", chatC
 let reminders=JSON.parse(localStorage.getItem("sb_reminders")||"[]");
 let ocrImageData=null, transTimeout=null;
 
-window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredPrompt=e;document.getElementById("installBanner").classList.add("show");});
-async function installPWA(){
+// ── SMART PWA INSTALL SYSTEM ──
+function isIOS(){return /iphone|ipad|ipod/i.test(navigator.userAgent);}
+function isInStandaloneMode(){return window.matchMedia("(display-mode:standalone)").matches||window.navigator.standalone===true;}
+function wasRecentlyDismissed(){
+  const t=localStorage.getItem("sb_install_dismissed");
+  if(!t)return false;
+  return(Date.now()-parseInt(t))<3*24*60*60*1000; // 3 din tak nahi dikhayega
+}
+function showInstallPopup(){
+  if(isInStandaloneMode())return;
+  if(localStorage.getItem("sb_installed"))return;
+  if(wasRecentlyDismissed())return;
+  const popup=document.getElementById("installPopup");
+  if(isIOS()){
+    document.getElementById("androidInstallSection").style.display="none";
+    document.getElementById("iosInstallSection").style.display="block";
+  }
+  popup.classList.add("show");
+}
+function closeInstallPopup(){
+  document.getElementById("installPopup").classList.remove("show");
+  localStorage.setItem("sb_install_dismissed",Date.now().toString());
+}
+async function doInstallPWA(){
   if(deferredPrompt){
     deferredPrompt.prompt();
-    const {outcome}=await deferredPrompt.userChoice;
+    const{outcome}=await deferredPrompt.userChoice;
     if(outcome==="accepted"){
-      document.getElementById("installBanner").classList.remove("show");
-    }
+      localStorage.setItem("sb_installed","1");
+      document.getElementById("installPopup").classList.remove("show");
+      showToast("🎉 App install ho gaya! Home screen pe dekho");
+    }else{closeInstallPopup();}
     deferredPrompt=null;
-  } else {
-    showInstallGuide();
+  }else if(isIOS()){
+    document.getElementById("androidInstallSection").style.display="none";
+    document.getElementById("iosInstallSection").style.display="block";
+  }else{
+    closeInstallPopup();
+    showToast("Browser ke menu se 'Install app' karo");
   }
 }
-function showInstallGuide(){
-  document.getElementById("installModal").classList.add("open");
+window.addEventListener("beforeinstallprompt",e=>{
+  e.preventDefault();deferredPrompt=e;
+  // Popup show karo jab prompt ready ho
+  setTimeout(showInstallPopup,1500);
+});
+window.addEventListener("appinstalled",()=>{
+  localStorage.setItem("sb_installed","1");
+  document.getElementById("installPopup").classList.remove("show");
+});
+// iOS ke liye bhi popup dikhao (beforeinstallprompt nahi aata iOS pe)
+if(isIOS()&&!isInStandaloneMode()&&!wasRecentlyDismissed()){
+  setTimeout(showInstallPopup,1500);
 }
+function showInstallGuide(){document.getElementById("installModal").classList.add("open");}
+function installPWA(){doInstallPWA();}
 
 if(token) showApp();
 requestNotificationPermission();
