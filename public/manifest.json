@@ -1,17 +1,51 @@
 {
   "name": "Second Brain",
-  "short_name": "Brain",
-  "description": "Aapka personal notes, AI aur knowledge hub",
+  "short_name": "Second Brain",
+  "description": "AI Notes, Reminders, Translator, OCR aur News — sab ek jagah",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a14",
   "theme_color": "#7c3aed",
-  "orientation": "portrait",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "hi",
+  "categories": ["productivity", "utilities", "education"],
   "icons": [
     {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>",
-      "sizes": "any",
-      "type": "image/svg+xml"
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%237c3aed'/><text y='360' x='50' font-size='380'>🧠</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
     }
-  ]
+  ],
+  "shortcuts": [
+    {
+      "name": "AI Chat",
+      "short_name": "AI",
+      "description": "Brain se baat karo",
+      "url": "/?tab=chat",
+      "icons": [{"src": "icon.png", "sizes": "96x96"}]
+    },
+    {
+      "name": "Notes",
+      "short_name": "Notes",
+      "description": "Note likho",
+      "url": "/?tab=notes",
+      "icons": [{"src": "icon.png", "sizes": "96x96"}]
+    }
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
 }
