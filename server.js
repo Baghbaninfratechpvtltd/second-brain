@@ -151,7 +151,7 @@ app.post("/chat", authMiddleware, async (req, res) => {
     if (!msg) return res.status(400).json({ error: "Message chahiye" });
     const messages = buildMessages(history, newsContext, msg, image);
     // ⚡ Gemini Flash — sabse fast free model
-    const model = image ? "meta-llama/llama-3.2-11b-vision-instruct:free" : "google/gemini-flash-1.5";
+    const model = image ? "meta-llama/llama-3.2-11b-vision-instruct:free" : "google/gemini-2.0-flash-001";
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
       headers: { "Authorization": `Bearer ${OPENROUTER_KEY}`, "Content-Type": "application/json" },
@@ -181,7 +181,7 @@ app.post("/chat/stream", authMiddleware, async (req, res) => {
 
     const messages = buildMessages(history, newsContext, msg, image);
     // ⚡ Gemini Flash — sabse fast + streaming support
-    const model = image ? "meta-llama/llama-3.2-11b-vision-instruct:free" : "google/gemini-flash-1.5";
+    const model = image ? "meta-llama/llama-3.2-11b-vision-instruct:free" : "google/gemini-2.0-flash-001";
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
