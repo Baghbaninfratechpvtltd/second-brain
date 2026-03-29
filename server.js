@@ -307,7 +307,7 @@ function buildMessages(history = [], newsContext = [], msg, image, webContext = 
   return messages;
 }
 
-// ── GEMINI AI — Main engine (gemini-2.5-flash — current free tier model 2026)
+// ── GEMINI AI — Main engine (gemini-2.5-flash-lite — 1000 req/day free)
 async function callAI(messages, stream = false) {
   const systemParts = messages.filter(m => m.role === "system").map(m => m.content).join("\n\n");
   const chatMsgs = messages.filter(m => m.role !== "system");
@@ -330,7 +330,7 @@ async function callAI(messages, stream = false) {
     return { role, parts };
   });
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_KEY}`;
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -343,7 +343,7 @@ async function callAI(messages, stream = false) {
   const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!reply) throw new Error("Gemini empty reply");
   console.log("✅ Gemini-2.5-flash success");
-  return { reply, model: "gemini-2.5-flash" };
+  return { reply, model: "gemini-2.5-flash-lite" };
 }
 
 // Vision bhi Gemini se
