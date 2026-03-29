@@ -14,7 +14,21 @@ app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.ht
 const MONGO_URI         = process.env.MONGO_URI         || "YOUR_MONGODB_URI";
 const JWT_SECRET        = process.env.JWT_SECRET        || "supersecretkey123";
 const OPENROUTER_KEY    = process.env.OPENROUTER_KEY    || "YOUR_OPENROUTER_KEY";
-const GEMINI_KEY        = process.env.GEMINI_KEY         || "";
+const GROQ_KEY = process.env.GROQ_KEY || "";
+
+// Multiple Gemini keys — fallback ke liye
+const GEMINI_KEYS = [
+  process.env.GEMINI_KEY  || "",
+  process.env.GEMINI_KEY2 || "",
+  process.env.GEMINI_KEY3 || "",
+].filter(k => k.length > 0);
+let geminiKeyIndex = 0;
+function getGeminiKey() {
+  return GEMINI_KEYS[geminiKeyIndex % GEMINI_KEYS.length];
+}
+function rotateGeminiKey() {
+  geminiKeyIndex = (geminiKeyIndex + 1) % GEMINI_KEYS.length;
+}
 const GOOGLE_SEARCH_KEY = process.env.GOOGLE_SEARCH_KEY || "YOUR_GOOGLE_KEY";   // optional backup
 const GOOGLE_CX         = process.env.GOOGLE_CX         || "YOUR_GOOGLE_CX";    // optional backup
 
@@ -345,7 +359,7 @@ async function callAI(messages, stream = false) {
     return { role, parts };
   });
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${getGeminiKey()}`;
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -354,7 +368,13 @@ async function callAI(messages, stream = false) {
   });
 
   const data = await response.json();
-  if (!response.ok) throw new Error(data?.error?.message || "Gemini error");
+  if (!response.ok) {
+    if (data?.error?.status === "RESOURCE_EXHAUSTED") {
+      rotateGeminiKey();
+      console.log("🔄 Quota exceeded, rotating to next key...");
+    }
+    throw new Error(data?.error?.message || "Gemini error");
+  }
   const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!reply) throw new Error("Gemini empty reply");
   console.log("✅ Gemini-2.5-flash success");
@@ -364,6 +384,166 @@ async function callAI(messages, stream = false) {
 // Vision bhi Gemini se
 async function callVisionAI(messages) {
   return await callAI(messages);
+}
+
+// ── AI CHAT — Normal
+app.post("/chat", authMiddleware, async (req, res) => {
+  try {
+    const { msg, history = [], image, newsContext } = req.body;
+    if (!msg) return res.status(400).json({ error: "Message chahiye" });
+
+    let webContext = null;
+    if (needsWebSearch(msg)) webContext = await webSearch(msg);
+
+    const messages = buildMessages(history, newsContext, msg, image, webContext);
+
+    const result = image ? await callVisionAI(messages) : await callAI(messages);
+    res.json({ reply: result.reply });
+  } catch (e) {
+    console.error("Chat Error:", e);
+    res.status(500).json({ error: "AI fail ho gaya — thodi der baad try karo" });
+  }
+});
+
+// ── AI CHAT STREAMING — Word by word ⚡ with auto fallback
+app.post("/chat/stream", authMiddleware, async (req, res) => {
+  try {
+    const { msg, history = [], image, newsContext } = req.body;
+    if (!msg) return res.status(400).json({ error: "Message chahiye" });
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
+
+    let webContext = null;
+    if (needsWebSearch(msg)) {
+      res.write(`data: ${JSON.stringify({ status: "🌐 Web search ho rahi hai..." })}\n\n`);
+      webContext = await webSearch(msg);
+    }
+
+    const messages = buildMessages(history, newsContext, msg, image, webContext);
+
+    // Image ke liye non-streaming vision
+    if (image) {
+      const result = await callVisionAI(messages);
+      res.write(`data: ${JSON.stringify({ token: result.reply })}\n\n`);
+      res.write("data: [DONE]\n\n");
+      res.end(); return;
+    }
+
+    // Gemini se reply lo aur word-by-word bhejo
+    try {
+      const result = await callAI(messages);
+      const words = result.reply.split(" ");
+      for (const word of words) {
+        res.write(`data: ${JSON.stringify({ token: word + " " })}\n\n`);
+      }
+    } catch (e) {
+      res.write(`data: ${JSON.stringify({ error: "AI fail ho gaya: " + e.message })}\n\n`);
+    }
+    res.write("data: [DONE]\n\n");
+    res.end();
+  } catch (e) {
+    console.error("Stream Error:", e);
+    try { res.write(`data: ${JSON.stringify({ error: "AI fail ho gaya" })}\n\n`); res.end(); } catch {}
+  }
+});
+
+
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`🚀 Server port ${PORT} pe chal raha hai — Auto Fallback AI ⚡`));// ── AI ENGINE — Groq primary (14400/day free) + Gemini fallback
+async function callGroq(messages) {
+  if (!GROQ_KEY) throw new Error("No Groq key");
+  
+  // Groq OpenAI-compatible format use karta hai
+  const groqMessages = messages.map(m => ({
+    role: m.role === "system" ? "system" : m.role === "assistant" ? "assistant" : "user",
+    content: Array.isArray(m.content) 
+      ? m.content.find(p => p.type === "text")?.text || ""
+      : m.content
+  }));
+
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${GROQ_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model: "llama-3.3-70b-versatile",
+      messages: groqMessages,
+      max_tokens: 1024,
+      temperature: 0.7
+    }),
+    signal: AbortSignal.timeout(30000)
+  });
+
+  const data = await response.json();
+  if (!response.ok) throw new Error(data?.error?.message || "Groq error");
+  const reply = data?.choices?.[0]?.message?.content;
+  if (!reply) throw new Error("Groq empty reply");
+  console.log("✅ Groq success");
+  return { reply, model: "llama-3.3-70b" };
+}
+
+async function callGemini(messages) {
+  const systemParts = messages.filter(m => m.role === "system").map(m => m.content).join("\n\n");
+  const chatMsgs = messages.filter(m => m.role !== "system");
+
+  const contents = chatMsgs.map((m, i) => {
+    const role = m.role === "assistant" ? "model" : "user";
+    let parts;
+    if (Array.isArray(m.content)) {
+      parts = m.content.map(p => {
+        if (p.type === "image_url") {
+          const base64 = p.image_url.url.includes(",") ? p.image_url.url.split(",")[1] : p.image_url.url;
+          return { inlineData: { mimeType: "image/jpeg", data: base64 }};
+        }
+        return { text: (i === 0 && role === "user" && systemParts ? systemParts + "\n\n" : "") + (p.text || "") };
+      });
+    } else {
+      const text = (i === 0 && role === "user" && systemParts ? systemParts + "\n\n" : "") + m.content;
+      parts = [{ text }];
+    }
+    return { role, parts };
+  });
+
+  const key = getGeminiKey();
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${key}`;
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 1024, temperature: 0.7 } }),
+    signal: AbortSignal.timeout(30000)
+  });
+
+  const data = await response.json();
+  if (!response.ok) {
+    if (data?.error?.status === "RESOURCE_EXHAUSTED") rotateGeminiKey();
+    throw new Error(data?.error?.message || "Gemini error");
+  }
+  const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!reply) throw new Error("Gemini empty reply");
+  console.log("✅ Gemini fallback success");
+  return { reply, model: "gemini-2.5-flash" };
+}
+
+async function callAI(messages) {
+  // Groq pehle try karo — 14400/day free
+  try {
+    return await callGroq(messages);
+  } catch(e) {
+    console.log("⚠️ Groq failed:", e.message, "— trying Gemini...");
+  }
+  // Gemini fallback
+  return await callGemini(messages);
+}
+
+// Vision — Gemini se (image support)
+async function callVisionAI(messages) {
+  return await callGemini(messages);
 }
 
 // ── AI CHAT — Normal
