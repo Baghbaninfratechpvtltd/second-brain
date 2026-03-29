@@ -334,14 +334,26 @@ function buildMessages(history = [], newsContext = [], msg, image, webContext = 
 // ── AI MODELS — Automatic fallback system 🔄
 // openrouter/free — khud best available free model choose karta hai
 const AI_MODELS = [
-  "openrouter/free",                            // 1st — auto best free model (March 2026)
-  "meta-llama/llama-3.3-70b-instruct:free",     // 2nd — Llama 70B
-  "meta-llama/llama-3.1-8b-instruct:free",      // 3rd — Llama 8B fast
-  "google/gemma-3-27b-it:free",                 // 4th — Google Gemma 3
-  "google/gemma-3-12b-it:free",                 // 5th — Google Gemma 3 small
-  "mistralai/mistral-small-3.1-24b-instruct:free", // 6th — Mistral Small
-  "qwen/qwen-2.5-72b-instruct:free",            // 7th — Qwen
+  "meta-llama/llama-3.3-70b-instruct:free",        // 1st — Llama 70B (best Hindi support)
+  "qwen/qwen-2.5-72b-instruct:free",               // 2nd — Qwen 72B (strong multilingual, clean)
+  "mistralai/mistral-small-3.1-24b-instruct:free", // 3rd — Mistral (clean, no garbage mixing)
+  "meta-llama/llama-3.1-8b-instruct:free",         // 4th — Llama 8B fast fallback
+  "google/gemma-3-27b-it:free",                    // 5th — Gemma 3 27B
+  // NOTE: "openrouter/free" HATAAYA — yeh random models pick karta tha jo Polish/Arabic mix karte the
 ];
+
+// ── RESPONSE SANITIZER — garbage characters clean karo automatically
+function sanitizeResponse(text) {
+  if (!text) return text;
+  let cleaned = text
+    .replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, '')               // Polish chars
+    .replace(/[\u0600-\u06FF\u0750-\u077F]/g, '')          // Arabic script
+    .replace(/([\u0900-\u097F]+)([a-zA-Z]{1,3})([\u0900-\u097F])/g, '$1$3') // "सचing" → "सच"
+    .replace(/([\u0900-\u097F]+)([a-z]{1,2})\b/g, '$1')   // "ज़ारीs" → "ज़ारी"
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+  return cleaned;
+}
 
 // Smart AI call — automatically next model try karta hai
 async function callAI(messages, stream = false) {
@@ -380,9 +392,10 @@ async function callAI(messages, stream = false) {
         continue;
       }
 
-      const reply = data?.choices?.[0]?.message?.content;
-      if (!reply) { console.log(`❌ ${model}: empty reply, next...`); continue; }
+      const rawReply = data?.choices?.[0]?.message?.content;
+      if (!rawReply) { console.log(`❌ ${model}: empty reply, next...`); continue; }
 
+      const reply = sanitizeResponse(rawReply);
       console.log(`✅ ${model} — success!`);
       return { reply, model };
     } catch (e) {
@@ -409,7 +422,7 @@ async function callVisionAI(messages) {
       });
       const data = await response.json();
       if (data.error || !data?.choices?.[0]?.message?.content) continue;
-      return { reply: data.choices[0].message.content, model };
+      return { reply: sanitizeResponse(data.choices[0].message.content), model };
     } catch { continue; }
   }
   throw new Error("Koi bhi vision model kaam nahi kar raha");
