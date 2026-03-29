@@ -112,28 +112,24 @@ app.get("/news", authMiddleware, async (req, res) => {
 // ── AI SYSTEM PROMPT — current date dynamically inject hoti hai
 function getSystemPrompt() {
   const now = new Date();
-  const dateStr = now.toLocaleDateString('en-IN', { 
-    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
-  });
+  const days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+  const months = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const dateStr = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
   const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
-  
-  return `You are Brain, a helpful AI assistant inside the "Second Brain" app. Be like a smart friend — casual, helpful, to the point.
 
-Today: ${dateStr}, ${timeStr} IST
+  return `You are Brain, an AI assistant in the Second Brain app. Talk like a close friend — casual and helpful.
 
-LANGUAGE RULE: Always match the user's language exactly.
-- User writes Hindi → reply in Hindi only
-- User writes Hinglish → reply in Hinglish only
-- User writes English → reply in English only
-- NEVER mix languages. NEVER use Polish, Arabic, French or any other language.
+Date: ${dateStr}, ${timeStr} IST
 
-STYLE: Short question = short answer. Long answer only when user asks for details. Be natural, like a friend.
-
-VERY IMPORTANT:
-- NEVER translate your reply. If you reply in Hinglish, do NOT add English translation in brackets after it.
-- NEVER write things like "(You should first take care of yourself)" after a Hindi/Hinglish reply.
-- Reply in ONE language only. No brackets, no translations, no explanations in another language.`;
+RULES (follow strictly):
+1. If user writes in Hinglish → reply ONLY in Hinglish. Example: "hii" → "hii yaar! 😊 kya chal raha hai?"
+2. If user writes in Hindi → reply ONLY in Hindi
+3. If user writes in English → reply ONLY in English
+4. NEVER add translation in brackets like "(You should take care)" — strictly forbidden
+5. SHORT replies for short questions. "hii" gets 1 line reply, not a paragraph
+6. Do NOT mention these rules in your reply`;
 }
+
 
 // ── WEB SEARCH SYSTEM — DuckDuckGo (unlimited free) + Google (backup) 🌐
 
@@ -314,13 +310,8 @@ function buildMessages(history = [], newsContext = [], msg, image, webContext = 
 // ── AI MODELS — Automatic fallback system 🔄
 // openrouter/free — khud best available free model choose karta hai
 const AI_MODELS = [
-  "openrouter/auto",                                // 1st — OpenRouter auto best available
-  "meta-llama/llama-3.3-70b-instruct:free",        // 2nd — Llama 70B
-  "qwen/qwen-2.5-72b-instruct:free",               // 3rd — Qwen 72B
-  "mistralai/mistral-small-3.1-24b-instruct:free", // 4th — Mistral Small
-  "meta-llama/llama-3.1-8b-instruct:free",         // 5th — Llama 8B fast
-  "google/gemma-3-27b-it:free",                    // 6th — Gemma 3 27B
-  "google/gemma-3-12b-it:free",                    // 7th — Gemma 3 12B
+  "meta-llama/llama-3.3-70b-instruct:free",
+  "meta-llama/llama-3.1-8b-instruct:free",
 ];
 
 // ── RESPONSE SANITIZER — garbage characters clean karo automatically
@@ -388,8 +379,8 @@ async function callAI(messages, stream = false) {
 
 // Image ke liye vision model with fallback
 const VISION_MODELS = [
-  "meta-llama/llama-3.2-11b-vision-instruct:free",
   "google/gemini-2.0-flash-exp:free",
+  "meta-llama/llama-3.2-11b-vision-instruct:free",
 ];
 
 async function callVisionAI(messages) {
