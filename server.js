@@ -112,28 +112,32 @@ app.get("/news", authMiddleware, async (req, res) => {
 // ── AI SYSTEM PROMPT — current date dynamically inject hoti hai
 function getSystemPrompt() {
   const now = new Date();
-  const dateStr = now.toLocaleDateString('hi-IN', { 
+  const dateStr = now.toLocaleDateString('en-IN', { 
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
   });
-  const timeStr = now.toLocaleTimeString('hi-IN', { hour: '2-digit', minute: '2-digit' });
+  const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
   
-  return `Tu "Brain" hai — "Second Brain" app ka AI assistant. Tu ek dost ki tarah baat karta hai.
+  return `You are "Brain", a helpful AI assistant inside "Second Brain" app.
 
-AAJ KI DATE AUR TIME (BILKUL SAHI):
-📅 ${dateStr}
-🕐 ${timeStr} IST
-YEAR: ${now.getFullYear()}
+TODAY'S DATE & TIME (ALWAYS USE THIS):
+Date: ${dateStr}
+Time: ${timeStr} IST
+Year: ${now.getFullYear()}
 
-YEH DATE 100% SAHI HAI — kabhi galat date mat batana. Agar koi date pooche to yahi batana.
+CRITICAL LANGUAGE RULES - FOLLOW STRICTLY:
+1. If user writes in Hindi (Devanagari script) → Reply ONLY in simple conversational Hindi (Devanagari script). Use words like "haan", "dekh", "bilkul", "yaar". NEVER use Urdu words or Urdu script. NEVER mix other languages.
+2. If user writes in English → Reply ONLY in English.
+3. If user writes in Hinglish (Roman Hindi like "kya haal hai") → Reply ONLY in Hinglish.
+4. NEVER mix Hindi + English + Urdu in same response.
+5. NEVER add translation after Hindi response.
+6. NEVER use Arabic, Urdu, or any other script.
+7. Hindi mein jawab dete waqt SIRF Devanagari script use karo — koi aur script nahi.
 
-LANGUAGE RULE:
-- User Hindi mein likhe → simple bolchal wali Hindi mein jawab de (jaise "haan yaar", "dekh", "bilkul" — formal nahi)
-- User English mein likhe → English mein jawab de
-- User Hinglish mein likhe → Hinglish mein jawab de
-- Ek hi response mein Hindi + English dono mat mix kar
-- Hindi ke baad English translation bilkul mat de
-
-STYLE: Dost jaisi boli, seedha kaam ki baat, lists/bullets jab helpful ho, code poochha to puri working code de.`;
+STYLE:
+- Talk like a helpful friend, not formal
+- Use bullet points when helpful
+- Give complete working code when asked
+- Be direct and clear`;
 }
 
 // ── WEB SEARCH SYSTEM — DuckDuckGo (unlimited free) + Google (backup) 🌐
@@ -313,15 +317,12 @@ function buildMessages(history = [], newsContext = [], msg, image, webContext = 
 
 // ── AI CHAT — Normal (task planner, translator ke liye bhi use hota hai)
 // ── AI MODELS — Automatic fallback system 🔄
-// openrouter/free — khud best available free model choose karta hai
 const AI_MODELS = [
-  "openrouter/free",                            // 1st — auto best free model (March 2026)
-  "meta-llama/llama-3.3-70b-instruct:free",     // 2nd — Llama 70B
-  "meta-llama/llama-3.1-8b-instruct:free",      // 3rd — Llama 8B fast
-  "google/gemma-3-27b-it:free",                 // 4th — Google Gemma 3
-  "google/gemma-3-12b-it:free",                 // 5th — Google Gemma 3 small
-  "mistralai/mistral-small-3.1-24b-instruct:free", // 6th — Mistral Small
-  "qwen/qwen-2.5-72b-instruct:free",            // 7th — Qwen
+  "meta-llama/llama-3.3-70b-instruct:free",        // 1st — best Hindi support
+  "meta-llama/llama-3.1-8b-instruct:free",          // 2nd — fast Llama
+  "google/gemma-3-27b-it:free",                     // 3rd — Google Gemma 3
+  "mistralai/mistral-small-3.1-24b-instruct:free",  // 4th — Mistral
+  "qwen/qwen-2.5-72b-instruct:free",               // 5th — Qwen
 ];
 
 // Smart AI call — automatically next model try karta hai
