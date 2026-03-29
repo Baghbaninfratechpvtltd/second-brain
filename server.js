@@ -261,14 +261,29 @@ async function webSearch(query) {
 // ── DETECT karo ki web search chahiye ya nahi
 function needsWebSearch(msg) {
   const lower = msg.toLowerCase();
-  // Current/recent info ke keywords
   const searchTriggers = [
-    "aaj", "today", "abhi", "latest", "current", "2024", "2025", "2026",
-    "news", "price", "rate", "score", "result", "winner", "election",
-    "stock", "share", "weather", "match", "ipl", "world cup",
-    "kab hua", "kya hua", "recently", "new", "update", "launched",
-    "government", "pm modi", "president", "minister",
-    "vacancy", "recruitment", "exam date", "admit card"
+    // Time related
+    "aaj", "today", "abhi", "kal", "parso", "is saal", "this year",
+    "latest", "current", "recent", "now", "2024", "2025", "2026",
+    "vartman", "abhi ka", "is waqt", "filhal",
+    // News & events
+    "news", "khabar", "samachar", "kya hua", "kab hua", "kya ho raha",
+    "score", "result", "winner", "election", "chunav",
+    "match", "ipl", "world cup", "tournament",
+    // Prices & finance
+    "price", "rate", "daam", "kitna hai", "cost",
+    "stock", "share", "sensex", "nifty", "crypto", "bitcoin",
+    "petrol", "diesel", "gold", "silver", "sona",
+    // Government & jobs
+    "government", "sarkar", "pm modi", "president", "minister",
+    "vacancy", "bharti", "recruitment", "exam date", "admit card",
+    "sarkari", "naukri", "result",
+    // Weather
+    "weather", "mausam", "barish", "garmi", "sardi", "temperature",
+    // General current info
+    "update", "launched", "release", "new", "naya",
+    "who is", "kaun hai", "kya hai", "what is",
+    "kitne", "kitni", "how many", "how much"
   ];
   return searchTriggers.some(k => lower.includes(k));
 }
@@ -307,7 +322,7 @@ function buildMessages(history = [], newsContext = [], msg, image, webContext = 
   return messages;
 }
 
-// ── GEMINI AI — Main engine (gemini-2.5-flash-lite — 1000 req/day free)
+// ── GEMINI AI — Main engine (gemini-2.5-flash — current free tier model 2026)
 async function callAI(messages, stream = false) {
   const systemParts = messages.filter(m => m.role === "system").map(m => m.content).join("\n\n");
   const chatMsgs = messages.filter(m => m.role !== "system");
@@ -330,11 +345,11 @@ async function callAI(messages, stream = false) {
     return { role, parts };
   });
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-lite:generateContent?key=${GEMINI_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 1024, temperature: 0.7 } }),
+    body: JSON.stringify({ contents, tools: [{ google_search: {} }], generationConfig: { maxOutputTokens: 1024, temperature: 0.7 } }),
     signal: AbortSignal.timeout(30000)
   });
 
@@ -343,7 +358,7 @@ async function callAI(messages, stream = false) {
   const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!reply) throw new Error("Gemini empty reply");
   console.log("✅ Gemini-2.5-flash success");
-  return { reply, model: "gemini-2.5-flash-lite" };
+  return { reply, model: "gemini-2.5-flash" };
 }
 
 // Vision bhi Gemini se
