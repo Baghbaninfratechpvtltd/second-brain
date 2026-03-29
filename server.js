@@ -11,9 +11,11 @@ app.use(express.json({ limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
-const MONGO_URI      = process.env.MONGO_URI      || "YOUR_MONGODB_URI";
-const JWT_SECRET     = process.env.JWT_SECRET     || "supersecretkey123";
-const OPENROUTER_KEY = process.env.OPENROUTER_KEY || "YOUR_OPENROUTER_KEY";
+const MONGO_URI         = process.env.MONGO_URI         || "YOUR_MONGODB_URI";
+const JWT_SECRET        = process.env.JWT_SECRET        || "supersecretkey123";
+const OPENROUTER_KEY    = process.env.OPENROUTER_KEY    || "YOUR_OPENROUTER_KEY";
+const GOOGLE_SEARCH_KEY = process.env.GOOGLE_SEARCH_KEY || "YOUR_GOOGLE_KEY";   // optional backup
+const GOOGLE_CX         = process.env.GOOGLE_CX         || "YOUR_GOOGLE_CX";    // optional backup
 
 mongoose.connect(MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
@@ -119,9 +121,135 @@ LANGUAGE RULE:
 
 STYLE: Dost jaisi boli, seedha kaam ki baat, lists/bullets jab helpful ho, code poochha to puri working code de.`;
 
-// ── HELPER: messages array banana
-function buildMessages(history = [], newsContext = [], msg, image) {
+// ── WEB SEARCH SYSTEM — DuckDuckGo (unlimited free) + Google (backup) 🌐
+
+// DuckDuckGo — No API key, unlimited free
+async function duckDuckGoSearch(query) {
+  try {
+    // DuckDuckGo Instant Answer API
+    const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
+    const r = await fetch(ddgUrl, {
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; SecondBrainBot/1.0)" }
+    });
+    const data = await r.json();
+
+    let context = "";
+
+    // Abstract (main answer)
+    if (data.AbstractText) {
+      context += `Answer: ${data.AbstractText}\nSource: ${data.AbstractURL}\n\n`;
+    }
+
+    // Related Topics
+    if (data.RelatedTopics?.length > 0) {
+      const topics = data.RelatedTopics
+        .filter(t => t.Text)
+        .slice(0, 4)
+        .map((t, i) => `[${i+1}] ${t.Text}\n${t.FirstURL || ""}`)
+        .join("\n\n");
+      if (topics) context += topics;
+    }
+
+    // Infobox data (facts, dates etc)
+    if (data.Infobox?.content?.length > 0) {
+      const facts = data.Infobox.content
+        .slice(0, 5)
+        .map(f => `${f.label}: ${f.value}`)
+        .join("\n");
+      if (facts) context += `\n\nFacts:\n${facts}`;
+    }
+
+    if (!context.trim()) return null; // koi result nahi mila
+    return context;
+  } catch (e) {
+    console.error("DDG error:", e.message);
+    return null;
+  }
+}
+
+// Google Custom Search — 3000/month free (backup)
+async function googleSearch(query) {
+  try {
+    if (!GOOGLE_SEARCH_KEY || GOOGLE_SEARCH_KEY === "YOUR_GOOGLE_KEY") return null;
+    const url = `https://www.googleapis.com/customsearch/v1?key=${GOOGLE_SEARCH_KEY}&cx=${GOOGLE_CX}&q=${encodeURIComponent(query)}&num=5`;
+    const r = await fetch(url);
+    const data = await r.json();
+    if (!data.items?.length) return null;
+
+    return data.items.slice(0, 4).map((item, i) =>
+      `[${i+1}] ${item.title}\n${item.snippet}\nSource: ${item.link}`
+    ).join("\n\n");
+  } catch (e) {
+    console.error("Google search error:", e.message);
+    return null;
+  }
+}
+
+// Jina AI — URL se content extract (free, unlimited)
+async function jinaFetch(url) {
+  try {
+    const r = await fetch(`https://r.jina.ai/${url}`, {
+      headers: { "Accept": "text/plain", "User-Agent": "Mozilla/5.0" },
+      signal: AbortSignal.timeout(5000)
+    });
+    const text = await r.text();
+    return text.substring(0, 800); // first 800 chars
+  } catch { return null; }
+}
+
+// Main search — DDG pehle, Google backup, Jina for content
+async function webSearch(query) {
+  console.log("🔍 Web search:", query);
+
+  // Step 1: DuckDuckGo try karo
+  let result = await duckDuckGoSearch(query);
+
+  // Step 2: Agar DDG mein kuch nahi mila, Google try karo
+  if (!result) {
+    console.log("DDG empty, trying Google...");
+    result = await googleSearch(query);
+  }
+
+  // Step 3: Agar dono se results mile, Jina se top URL ka content bhi lo
+  if (result) {
+    // URL extract karo pehle result se
+    const urlMatch = result.match(/https?:\/\/[^\s\n]+/);
+    if (urlMatch) {
+      const extraContent = await jinaFetch(urlMatch[0]);
+      if (extraContent) result += `\n\nDetailed content:\n${extraContent}`;
+    }
+  }
+
+  return result;
+}
+
+// ── DETECT karo ki web search chahiye ya nahi
+function needsWebSearch(msg) {
+  const lower = msg.toLowerCase();
+  // Current/recent info ke keywords
+  const searchTriggers = [
+    "aaj", "today", "abhi", "latest", "current", "2024", "2025", "2026",
+    "news", "price", "rate", "score", "result", "winner", "election",
+    "stock", "share", "weather", "match", "ipl", "world cup",
+    "kab hua", "kya hua", "recently", "new", "update", "launched",
+    "government", "pm modi", "president", "minister",
+    "vacancy", "recruitment", "exam date", "admit card"
+  ];
+  return searchTriggers.some(k => lower.includes(k));
+}
+
+
+function buildMessages(history = [], newsContext = [], msg, image, webContext = null) {
   const messages = [{ role: "system", content: SYSTEM_PROMPT }];
+
+  // 🌐 Live web search results
+  if (webContext) {
+    messages.push({
+      role: "system",
+      content: `🌐 LIVE WEB SEARCH RESULTS (aaj ka data — ${new Date().toLocaleDateString('hi-IN')}):\n\n${webContext}\n\nIn results ko use karke jawab de. Agar web mein newer info hai to wahi bata.`
+    });
+  }
+
   if (newsContext.length > 0) {
     messages.push({
       role: "system",
@@ -149,8 +277,14 @@ app.post("/chat", authMiddleware, async (req, res) => {
   try {
     const { msg, history = [], image, newsContext } = req.body;
     if (!msg) return res.status(400).json({ error: "Message chahiye" });
-    const messages = buildMessages(history, newsContext, msg, image);
-    // ⚡ Gemini Flash — sabse fast free model
+
+    // 🌐 Web search — agar current data chahiye
+    let webContext = null;
+    if (needsWebSearch(msg)) {
+      webContext = await webSearch(msg);
+    }
+
+    const messages = buildMessages(history, newsContext, msg, image, webContext);
     const model = image ? "meta-llama/llama-3.2-11b-vision-instruct:free" : "google/gemini-2.0-flash-001";
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -176,11 +310,17 @@ app.post("/chat/stream", authMiddleware, async (req, res) => {
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
-    res.setHeader("X-Accel-Buffering", "no"); // Nginx buffering disable
+    res.setHeader("X-Accel-Buffering", "no");
     res.flushHeaders();
 
-    const messages = buildMessages(history, newsContext, msg, image);
-    // ⚡ Gemini Flash — sabse fast + streaming support
+    // 🌐 Web search — current data ke liye
+    let webContext = null;
+    if (needsWebSearch(msg)) {
+      res.write(`data: ${JSON.stringify({ status: "🌐 Web search ho rahi hai..." })}\n\n`);
+      webContext = await webSearch(msg);
+    }
+
+    const messages = buildMessages(history, newsContext, msg, image, webContext);
     const model = image ? "meta-llama/llama-3.2-11b-vision-instruct:free" : "google/gemini-2.0-flash-001";
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
