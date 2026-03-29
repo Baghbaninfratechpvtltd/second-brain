@@ -334,12 +334,13 @@ function buildMessages(history = [], newsContext = [], msg, image, webContext = 
 // ── AI MODELS — Automatic fallback system 🔄
 // openrouter/free — khud best available free model choose karta hai
 const AI_MODELS = [
-  "meta-llama/llama-3.3-70b-instruct:free",        // 1st — Llama 70B (best Hindi support)
-  "qwen/qwen-2.5-72b-instruct:free",               // 2nd — Qwen 72B (strong multilingual, clean)
-  "mistralai/mistral-small-3.1-24b-instruct:free", // 3rd — Mistral (clean, no garbage mixing)
-  "meta-llama/llama-3.1-8b-instruct:free",         // 4th — Llama 8B fast fallback
-  "google/gemma-3-27b-it:free",                    // 5th — Gemma 3 27B
-  // NOTE: "openrouter/free" HATAAYA — yeh random models pick karta tha jo Polish/Arabic mix karte the
+  "openrouter/auto",                                // 1st — OpenRouter auto best available
+  "meta-llama/llama-3.3-70b-instruct:free",        // 2nd — Llama 70B
+  "qwen/qwen-2.5-72b-instruct:free",               // 3rd — Qwen 72B
+  "mistralai/mistral-small-3.1-24b-instruct:free", // 4th — Mistral Small
+  "meta-llama/llama-3.1-8b-instruct:free",         // 5th — Llama 8B fast
+  "google/gemma-3-27b-it:free",                    // 6th — Gemma 3 27B
+  "google/gemma-3-12b-it:free",                    // 7th — Gemma 3 12B
 ];
 
 // ── RESPONSE SANITIZER — garbage characters clean karo automatically
