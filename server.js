@@ -127,7 +127,12 @@ LANGUAGE RULE: Always match the user's language exactly.
 - User writes English → reply in English only
 - NEVER mix languages. NEVER use Polish, Arabic, French or any other language.
 
-STYLE: Short question = short answer. Long answer only when user asks for details. Be natural, like a friend.`;
+STYLE: Short question = short answer. Long answer only when user asks for details. Be natural, like a friend.
+
+VERY IMPORTANT:
+- NEVER translate your reply. If you reply in Hinglish, do NOT add English translation in brackets after it.
+- NEVER write things like "(You should first take care of yourself)" after a Hindi/Hinglish reply.
+- Reply in ONE language only. No brackets, no translations, no explanations in another language.`;
 }
 
 // ── WEB SEARCH SYSTEM — DuckDuckGo (unlimited free) + Google (backup) 🌐
