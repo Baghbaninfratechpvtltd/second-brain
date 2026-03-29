@@ -451,7 +451,6 @@ app.post("/chat/stream", authMiddleware, async (req, res) => {
 });
 
 
-const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server port ${PORT} pe chal raha hai — Auto Fallback AI ⚡`));// ── AI ENGINE — Groq primary (14400/day free) + Gemini fallback
 async function callGroq(messages) {
   if (!GROQ_KEY) throw new Error("No Groq key");
