@@ -313,15 +313,15 @@ function buildMessages(history = [], newsContext = [], msg, image, webContext = 
 
 // ── AI CHAT — Normal (task planner, translator ke liye bhi use hota hai)
 // ── AI MODELS — Automatic fallback system 🔄
-// Jab ek fail ho, agla automatically try hoga
+// openrouter/free — khud best available free model choose karta hai
 const AI_MODELS = [
-  "google/gemini-2.0-flash-exp:free",           // 1st — fast + web data
-  "google/gemini-2.0-flash-thinking-exp:free",  // 2nd — Google thinking
-  "meta-llama/llama-3.3-70b-instruct:free",     // 3rd — Llama
-  "meta-llama/llama-3.1-8b-instruct:free",      // 4th — smaller Llama
-  "mistralai/mistral-7b-instruct:free",          // 5th — Mistral
-  "qwen/qwen-2.5-72b-instruct:free",            // 6th — Qwen
-  "deepseek/deepseek-r1:free",                  // 7th — DeepSeek
+  "openrouter/free",                            // 1st — auto best free model (March 2026)
+  "meta-llama/llama-3.3-70b-instruct:free",     // 2nd — Llama 70B
+  "meta-llama/llama-3.1-8b-instruct:free",      // 3rd — Llama 8B fast
+  "google/gemma-3-27b-it:free",                 // 4th — Google Gemma 3
+  "google/gemma-3-12b-it:free",                 // 5th — Google Gemma 3 small
+  "mistralai/mistral-small-3.1-24b-instruct:free", // 6th — Mistral Small
+  "qwen/qwen-2.5-72b-instruct:free",            // 7th — Qwen
 ];
 
 // Smart AI call — automatically next model try karta hai
