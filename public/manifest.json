@@ -1,34 +1,26 @@
 {
   "name": "Second Brain",
   "short_name": "Second Brain",
-  "description": "AI Notes, Reminders, Translator, OCR aur News — sab ek jagah",
+  "description": "AI Assistant - Notes, Reminders, Translator, OCR aur News - Sab ek jagah",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#0a0a14",
   "theme_color": "#7c3aed",
-  "orientation": "portrait-primary",
-  "scope": "/",
-  "lang": "hi",
+  "lang": "hi-IN",
+  "dir": "ltr",
+  "prefer_related_applications": false,
   "categories": ["productivity", "utilities", "education"],
   "icons": [
-    {
-      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'><rect width='512' height='512' rx='100' fill='%237c3aed'/><text y='360' x='50' font-size='380'>🧠</text></svg>",
-      "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon.png",
-      "sizes": "192x192",
-      "type": "image/png",
-      "purpose": "any maskable"
-    },
-    {
-      "src": "icon.png",
-      "sizes": "512x512",
-      "type": "image/png",
-      "purpose": "any maskable"
-    }
+    {"src": "/icon.png", "sizes": "72x72",   "type": "image/png", "purpose": "any"},
+    {"src": "/icon.png", "sizes": "96x96",   "type": "image/png", "purpose": "any"},
+    {"src": "/icon.png", "sizes": "128x128", "type": "image/png", "purpose": "any"},
+    {"src": "/icon.png", "sizes": "144x144", "type": "image/png", "purpose": "any"},
+    {"src": "/icon.png", "sizes": "152x152", "type": "image/png", "purpose": "any"},
+    {"src": "/icon.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable"},
+    {"src": "/icon.png", "sizes": "384x384", "type": "image/png", "purpose": "any"},
+    {"src": "/icon.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable"}
   ],
   "shortcuts": [
     {
@@ -36,16 +28,21 @@
       "short_name": "AI",
       "description": "Brain se baat karo",
       "url": "/?tab=chat",
-      "icons": [{"src": "icon.png", "sizes": "96x96"}]
+      "icons": [{"src": "/icon.png", "sizes": "192x192"}]
     },
     {
       "name": "Notes",
       "short_name": "Notes",
       "description": "Note likho",
       "url": "/?tab=notes",
-      "icons": [{"src": "icon.png", "sizes": "96x96"}]
+      "icons": [{"src": "/icon.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Reminder",
+      "short_name": "Remind",
+      "description": "Reminder set karo",
+      "url": "/?tab=reminder",
+      "icons": [{"src": "/icon.png", "sizes": "192x192"}]
     }
-  ],
-  "screenshots": [],
-  "prefer_related_applications": false
+  ]
 }
