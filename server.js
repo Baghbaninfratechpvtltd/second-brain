@@ -307,16 +307,14 @@ function buildMessages(history = [], newsContext = [], msg, image, webContext = 
   return messages;
 }
 
-// ── GEMINI AI — Main engine
+// ── GEMINI AI — Main engine (gemini-2.5-flash — current free tier model 2026)
 async function callAI(messages, stream = false) {
-  // Saare system messages ek saath collect karo
   const systemParts = messages.filter(m => m.role === "system").map(m => m.content).join("\n\n");
   const chatMsgs = messages.filter(m => m.role !== "system");
 
   const contents = chatMsgs.map((m, i) => {
     const role = m.role === "assistant" ? "model" : "user";
     let parts;
-
     if (Array.isArray(m.content)) {
       parts = m.content.map(p => {
         if (p.type === "image_url") {
@@ -332,7 +330,7 @@ async function callAI(messages, stream = false) {
     return { role, parts };
   });
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${GEMINI_KEY}`;
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -344,8 +342,8 @@ async function callAI(messages, stream = false) {
   if (!response.ok) throw new Error(data?.error?.message || "Gemini error");
   const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
   if (!reply) throw new Error("Gemini empty reply");
-  console.log("✅ Gemini success");
-  return { reply, model: "gemini-1.5-flash-latest" };
+  console.log("✅ Gemini-2.5-flash success");
+  return { reply, model: "gemini-2.5-flash" };
 }
 
 // Vision bhi Gemini se
