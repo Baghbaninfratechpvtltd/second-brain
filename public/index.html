@@ -1093,40 +1093,47 @@ function loadOCRImage(file){
 
 async function doOCR(){
   if(!ocrImageData)return showToast("Pehle image upload karo!");
-  setProgress("ocrProgress",10);
-  showToast("⏳ Text padha ja raha hai...");
-  document.getElementById("ocrResult").textContent="";
-  document.getElementById("ocrResultSection").style.display="block";
+  const token = localStorage.getItem("token");
+  if(!token) return showToast("Pehle login karo!");
+
+  setProgress("ocrProgress", 20);
+  showToast("⏳ AI text padh raha hai...");
+  document.getElementById("ocrResult").textContent = "⏳ AI image scan kar raha hai...";
+  document.getElementById("ocrResultSection").style.display = "block";
 
   try{
-    const result = await Tesseract.recognize(
-      ocrImageData,
-      "hin+eng", // Hindi + English dono
-      {
-        logger: m => {
-          if(m.status === "recognizing text"){
-            const pct = Math.round(m.progress * 80) + 10;
-            setProgress("ocrProgress", pct);
-            document.getElementById("ocrResult").textContent = "⏳ " + Math.round(m.progress*100) + "% complete...";
-          }
-        }
-      }
-    );
-    const text = result.data.text.trim();
-    setProgress("ocrProgress",100);
-    if(text){
-      document.getElementById("ocrResult").textContent = text;
-      showToast("✅ Text extract ho gaya! " + text.length + " characters");
+    // Base64 se sirf data part nikalo (header hata do)
+    const base64Data = ocrImageData.split(",")[1];
+
+    setProgress("ocrProgress", 50);
+
+    const res = await fetch("/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({
+        msg: "Is image mein jo bhi text likha hai, use bilkul exactly extract karke de. Sirf text do, koi explanation nahi. Agar Hindi hai to Hindi mein, English hai to English mein, dono hain to dono.",
+        image: base64Data,
+        history: []
+      })
+    });
+
+    const data = await res.json();
+    setProgress("ocrProgress", 100);
+
+    if(data.reply){
+      document.getElementById("ocrResult").textContent = data.reply;
+      showToast("✅ Text extract ho gaya! " + data.reply.length + " characters");
     } else {
-      document.getElementById("ocrResult").textContent = "❌ Text nahi mila. Clear image use karo.";
+      document.getElementById("ocrResult").textContent = "❌ Text nahi mila image mein.";
       showToast("❌ Text nahi mila");
     }
-    setTimeout(()=>setProgress("ocrProgress",0),2000);
+    setTimeout(()=>setProgress("ocrProgress",0), 2000);
+
   }catch(e){
-    console.error("OCR Error:",e);
-    showToast("❌ OCR fail - clear image use karo");
-    setProgress("ocrProgress",0);
-    document.getElementById("ocrResult").textContent="❌ Error: "+e.message;
+    console.error("OCR Error:", e);
+    showToast("❌ OCR fail ho gaya");
+    setProgress("ocrProgress", 0);
+    document.getElementById("ocrResult").textContent = "❌ Error: " + e.message;
   }
 }
 
