@@ -14,6 +14,7 @@ app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.ht
 const MONGO_URI         = process.env.MONGO_URI         || "YOUR_MONGODB_URI";
 const JWT_SECRET        = process.env.JWT_SECRET        || "supersecretkey123";
 const OPENROUTER_KEY    = process.env.OPENROUTER_KEY    || "YOUR_OPENROUTER_KEY";
+const GEMINI_KEY        = process.env.GEMINI_KEY         || "";
 const GOOGLE_SEARCH_KEY = process.env.GOOGLE_SEARCH_KEY || "YOUR_GOOGLE_KEY";   // optional backup
 const GOOGLE_CX         = process.env.GOOGLE_CX         || "YOUR_GOOGLE_CX";    // optional backup
 
@@ -306,98 +307,49 @@ function buildMessages(history = [], newsContext = [], msg, image, webContext = 
   return messages;
 }
 
-// ── AI CHAT — Normal (task planner, translator ke liye bhi use hota hai)
-// ── AI MODELS — Automatic fallback system 🔄
-// openrouter/free — khud best available free model choose karta hai
-const AI_MODELS = [
-  "meta-llama/llama-3.3-70b-instruct:free",
-  "meta-llama/llama-3.1-8b-instruct:free",
-];
-
-// ── RESPONSE SANITIZER — garbage characters clean karo automatically
-function sanitizeResponse(text) {
-  if (!text) return text;
-  let cleaned = text
-    .replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, '')               // Polish chars
-    .replace(/[\u0600-\u06FF\u0750-\u077F]/g, '')          // Arabic script
-    .replace(/([\u0900-\u097F]+)([a-zA-Z]{1,3})([\u0900-\u097F])/g, '$1$3') // "सचing" → "सच"
-    .replace(/([\u0900-\u097F]+)([a-z]{1,2})\b/g, '$1')   // "ज़ारीs" → "ज़ारी"
-    .replace(/\n{3,}/g, '\n\n')
-    .trim();
-  return cleaned;
-}
-
-// Smart AI call — automatically next model try karta hai
+// ── GEMINI AI — Main engine
 async function callAI(messages, stream = false) {
-  for (let i = 0; i < AI_MODELS.length; i++) {
-    const model = AI_MODELS[i];
-    try {
-      console.log(`🤖 [${i+1}/${AI_MODELS.length}] ${model}`);
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${OPENROUTER_KEY}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://second-brain-98s0.onrender.com",
-          "X-Title": "Second Brain App"
-        },
-        body: JSON.stringify({ model, messages, stream }),
-        signal: AbortSignal.timeout(45000)
-      });
+  // Convert OpenAI format messages to Gemini format
+  const systemMsg = messages.find(m => m.role === "system");
+  const chatMsgs = messages.filter(m => m.role !== "system");
 
-      // Rate limit ya busy — next try karo
-      if (response.status === 429 || response.status === 503 || response.status === 404) {
-        console.log(`⏭ Model ${model} busy/unavailable (${response.status}), next...`);
-        continue;
-      }
+  const systemInstruction = systemMsg ? { parts: [{ text: systemMsg.content }] } : undefined;
 
-      if (!response.ok) {
-        console.log(`❌ Model ${model} failed (${response.status}), next...`);
-        continue;
-      }
+  const contents = chatMsgs.map(m => ({
+    role: m.role === "assistant" ? "model" : "user",
+    parts: Array.isArray(m.content)
+      ? m.content.map(p => p.type === "text" ? { text: p.text } : { inlineData: { mimeType: "image/jpeg", data: p.image_url.url.split(",")[1] } })
+      : [{ text: m.content }]
+  }));
 
-      if (stream) return response;
+  const body = {
+    contents,
+    generationConfig: { maxOutputTokens: 1024, temperature: 0.7 }
+  };
+  if (systemInstruction) body.systemInstruction = systemInstruction;
 
-      const data = await response.json();
-      if (data.error) {
-        console.log(`❌ ${model}: ${data.error.message}, next...`);
-        continue;
-      }
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
 
-      const rawReply = data?.choices?.[0]?.message?.content;
-      if (!rawReply) { console.log(`❌ ${model}: empty reply, next...`); continue; }
+  const response = await fetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal: AbortSignal.timeout(30000)
+  });
 
-      const reply = sanitizeResponse(rawReply);
-      console.log(`✅ ${model} — success!`);
-      return { reply, model };
-    } catch (e) {
-      console.log(`❌ ${model} exception: ${e.message}`);
-    }
-  }
-  throw new Error("Sab models unavailable hain — OpenRouter down ho sakta hai");
+  const data = await response.json();
+  if (!response.ok) throw new Error(data?.error?.message || "Gemini error");
+
+  const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+  if (!reply) throw new Error("Gemini ne empty reply diya");
+
+  console.log("✅ Gemini reply success");
+  return { reply, model: "gemini-1.5-flash" };
 }
 
-// Image ke liye vision model with fallback
-const VISION_MODELS = [
-  "google/gemini-2.0-flash-exp:free",
-  "meta-llama/llama-3.2-11b-vision-instruct:free",
-];
-
+// Vision bhi Gemini se — same function handles images too
 async function callVisionAI(messages) {
-  for (const model of VISION_MODELS) {
-    try {
-      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
-        headers: { "Authorization": `Bearer ${OPENROUTER_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ model, messages }),
-        signal: AbortSignal.timeout(30000)
-      });
-      const data = await response.json();
-      if (data.error || !data?.choices?.[0]?.message?.content) continue;
-      return { reply: sanitizeResponse(data.choices[0].message.content), model };
-    } catch { continue; }
-  }
-  throw new Error("Koi bhi vision model kaam nahi kar raha");
+  return await callAI(messages);
 }
 
 // ── AI CHAT — Normal
@@ -447,55 +399,15 @@ app.post("/chat/stream", authMiddleware, async (req, res) => {
       res.end(); return;
     }
 
-    // Streaming — models try karo ek ek karke
-    let streamSuccess = false;
-    for (let i = 0; i < AI_MODELS.length; i++) {
-      const model = AI_MODELS[i];
-      try {
-        if (i > 0) {
-          res.write(`data: ${JSON.stringify({ status: `🔄 Model ${i+1} try ho raha hai...` })}\n\n`);
-        }
-        const response = await callAI(messages, true);
-        if (!response?.body) continue;
-
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let buffer = "";
-        let hasContent = false;
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop();
-
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const raw = line.replace("data: ", "").trim();
-            if (raw === "[DONE]") {
-              res.write("data: [DONE]\n\n");
-              res.end();
-              streamSuccess = true;
-              return;
-            }
-            try {
-              const parsed = JSON.parse(raw);
-              const token = parsed?.choices?.[0]?.delta?.content || "";
-              if (token) { hasContent = true; res.write(`data: ${JSON.stringify({ token })}\n\n`); }
-            } catch {}
-          }
-        }
-
-        if (hasContent) { streamSuccess = true; break; }
-      } catch (e) {
-        console.log(`Stream model ${model} failed:`, e.message);
-        if (i === AI_MODELS.length - 1) break;
+    // Gemini se reply lo aur word-by-word bhejo
+    try {
+      const result = await callAI(messages);
+      const words = result.reply.split(" ");
+      for (const word of words) {
+        res.write(`data: ${JSON.stringify({ token: word + " " })}\n\n`);
       }
-    }
-
-    if (!streamSuccess) {
-      res.write(`data: ${JSON.stringify({ error: "Sab models busy hain, thodi der baad try karo" })}\n\n`);
+    } catch (e) {
+      res.write(`data: ${JSON.stringify({ error: "AI fail ho gaya: " + e.message })}\n\n`);
     }
     res.write("data: [DONE]\n\n");
     res.end();
