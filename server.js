@@ -328,7 +328,7 @@ async function callAI(messages, stream = false) {
   };
   if (systemInstruction) body.systemInstruction = systemInstruction;
 
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${GEMINI_KEY}`;
+  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
 
   const response = await fetch(url, {
     method: "POST",
@@ -344,7 +344,7 @@ async function callAI(messages, stream = false) {
   if (!reply) throw new Error("Gemini ne empty reply diya");
 
   console.log("✅ Gemini reply success");
-  return { reply, model: "gemini-2.0-flash" };
+  return { reply, model: "gemini-1.5-flash" };
 }
 
 // Vision bhi Gemini se — same function handles images too
