@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Second Brain 🧠</title>
+  <title>Second Brain AI 🧠</title>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#7c3aed">
   <meta name="mobile-web-app-capable" content="yes">
@@ -146,7 +146,7 @@
 <body>
 
 <div class="topnav" id="topnav" style="display:none">
-  <div class="brand">🧠 Second Brain</div>
+  <div class="brand">🧠 Second Brain AI</div>
   <div class="nav-right">
     <span class="user-email" id="userLabel"></span>
     <button class="secondary sm" onclick="logout()">Logout</button>
@@ -161,8 +161,8 @@
       <div class="install-app-row">
         <div class="install-icon">🧠</div>
         <div class="install-app-info">
-          <h2>Second Brain</h2>
-          <div class="install-dev">Second Brain App</div>
+          <h2>Second Brain AI</h2>
+          <div class="install-dev">Second Brain AI App</div>
           <div class="install-rating">★★★★★ &nbsp;Free · No Ads</div>
         </div>
       </div>
@@ -210,7 +210,7 @@
   <div id="authSection">
     <div style="text-align:center;margin-bottom:20px">
       <div style="font-size:2.6rem">🧠</div>
-      <h1 style="color:#a78bfa;font-size:1.4rem;margin:5px 0 3px">Second Brain</h1>
+      <h1 style="color:#a78bfa;font-size:1.4rem;margin:5px 0 3px">Second Brain AI</h1>
       <p style="color:var(--text2);font-size:0.82rem">Notes · AI · Reminders · Translator · OCR · Tasks</p>
     </div>
     <div class="card">
@@ -1031,7 +1031,7 @@ function fireReminder(rem,when){
   // Voice alert
   if(sound==="voice"||sound==="bell")speakText(`${when} aapka reminder hai: ${rem.title}`);
   // Notification
-  if(Notification.permission==="granted")new Notification("🔔 Second Brain",{body:`${when}: ${rem.title}`,icon:"/icon.png"});
+  if(Notification.permission==="granted")new Notification("🔔 Second Brain AI",{body:`${when}: ${rem.title}`,icon:"/icon.png"});
   showToast(`${when}: ${rem.title}`);
 }
 
