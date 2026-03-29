@@ -20,7 +20,6 @@ const GROQ_KEY = process.env.GROQ_KEY || "";
 const GEMINI_KEYS = [
   process.env.GEMINI_KEY  || "",
   process.env.GEMINI_KEY2 || "",
-  process.env.GEMINI_KEY3 || "",
 ].filter(k => k.length > 0);
 let geminiKeyIndex = 0;
 function getGeminiKey() {
