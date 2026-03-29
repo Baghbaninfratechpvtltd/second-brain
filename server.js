@@ -313,55 +313,64 @@ function buildMessages(history = [], newsContext = [], msg, image, webContext = 
 
 // ── AI CHAT — Normal (task planner, translator ke liye bhi use hota hai)
 // ── AI MODELS — Automatic fallback system 🔄
+// Jab ek fail ho, agla automatically try hoga
 const AI_MODELS = [
-  "google/gemini-2.0-flash-exp:free",        // 1st choice — fast + web data
-  "google/gemini-flash-1.5-8b:free",          // 2nd — Google backup
-  "meta-llama/llama-3.3-70b-instruct:free",   // 3rd — Llama fallback
-  "mistralai/mistral-7b-instruct:free",        // 4th — last resort
+  "google/gemini-2.0-flash-exp:free",           // 1st — fast + web data
+  "google/gemini-2.0-flash-thinking-exp:free",  // 2nd — Google thinking
+  "meta-llama/llama-3.3-70b-instruct:free",     // 3rd — Llama
+  "meta-llama/llama-3.1-8b-instruct:free",      // 4th — smaller Llama
+  "mistralai/mistral-7b-instruct:free",          // 5th — Mistral
+  "qwen/qwen-2.5-72b-instruct:free",            // 6th — Qwen
+  "deepseek/deepseek-r1:free",                  // 7th — DeepSeek
 ];
 
-// Smart AI call — automatically next model try karta hai agar koi fail ho
+// Smart AI call — automatically next model try karta hai
 async function callAI(messages, stream = false) {
   for (let i = 0; i < AI_MODELS.length; i++) {
     const model = AI_MODELS[i];
     try {
-      console.log(`🤖 Trying model ${i+1}/${AI_MODELS.length}: ${model}`);
+      console.log(`🤖 [${i+1}/${AI_MODELS.length}] ${model}`);
       const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
         method: "POST",
-        headers: { "Authorization": `Bearer ${OPENROUTER_KEY}`, "Content-Type": "application/json" },
+        headers: {
+          "Authorization": `Bearer ${OPENROUTER_KEY}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://second-brain-98s0.onrender.com",
+          "X-Title": "Second Brain App"
+        },
         body: JSON.stringify({ model, messages, stream }),
-        signal: AbortSignal.timeout(30000) // 30 sec timeout
+        signal: AbortSignal.timeout(45000)
       });
 
-      if (!response.ok) {
-        const errText = await response.text();
-        console.log(`❌ Model ${model} failed (${response.status}), trying next...`);
-        if (i === AI_MODELS.length - 1) throw new Error(errText);
-        continue; // next model try karo
+      // Rate limit ya busy — next try karo
+      if (response.status === 429 || response.status === 503 || response.status === 404) {
+        console.log(`⏭ Model ${model} busy/unavailable (${response.status}), next...`);
+        continue;
       }
 
-      if (stream) return response; // streaming ke liye response return karo
+      if (!response.ok) {
+        console.log(`❌ Model ${model} failed (${response.status}), next...`);
+        continue;
+      }
+
+      if (stream) return response;
 
       const data = await response.json();
       if (data.error) {
-        console.log(`❌ Model ${model} error: ${data.error.message}, trying next...`);
-        if (i === AI_MODELS.length - 1) throw new Error(data.error.message);
+        console.log(`❌ ${model}: ${data.error.message}, next...`);
         continue;
       }
 
       const reply = data?.choices?.[0]?.message?.content;
-      if (!reply) {
-        console.log(`❌ Model ${model} empty reply, trying next...`);
-        continue;
-      }
+      if (!reply) { console.log(`❌ ${model}: empty reply, next...`); continue; }
 
-      console.log(`✅ Model ${model} success!`);
-      return { reply, model }; // success
+      console.log(`✅ ${model} — success!`);
+      return { reply, model };
     } catch (e) {
-      console.log(`❌ Model ${model} exception: ${e.message}`);
-      if (i === AI_MODELS.length - 1) throw e;
+      console.log(`❌ ${model} exception: ${e.message}`);
     }
   }
+  throw new Error("Sab models unavailable hain — OpenRouter down ho sakta hai");
 }
 
 // Image ke liye vision model with fallback
