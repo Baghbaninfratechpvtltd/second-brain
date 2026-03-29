@@ -309,31 +309,43 @@ function buildMessages(history = [], newsContext = [], msg, image, webContext = 
 
 // ── GEMINI AI — Main engine
 async function callAI(messages, stream = false) {
-  // Convert OpenAI format messages to Gemini format
   const systemMsg = messages.find(m => m.role === "system");
   const chatMsgs = messages.filter(m => m.role !== "system");
 
-  const systemInstruction = systemMsg ? { parts: [{ text: systemMsg.content }] } : undefined;
-
-  const contents = chatMsgs.map(m => ({
-    role: m.role === "assistant" ? "model" : "user",
-    parts: Array.isArray(m.content)
-      ? m.content.map(p => p.type === "text" ? { text: p.text } : { inlineData: { mimeType: "image/jpeg", data: p.image_url.url.split(",")[1] } })
-      : [{ text: m.content }]
-  }));
-
-  const body = {
-    contents,
-    generationConfig: { maxOutputTokens: 1024, temperature: 0.7 }
-  };
-  if (systemInstruction) body.systemInstruction = systemInstruction;
+  // System prompt ko pehle user message ke saath jod do (v1 compatible)
+  const contents = [];
+  
+  // System prompt + first user message ek saath
+  let systemText = systemMsg ? systemMsg.content + "\n\n" : "";
+  
+  for (let i = 0; i < chatMsgs.length; i++) {
+    const m = chatMsgs[i];
+    const role = m.role === "assistant" ? "model" : "user";
+    
+    let parts;
+    if (Array.isArray(m.content)) {
+      // Image message
+      parts = m.content.map(p => {
+        if (p.type === "text") return { text: (i === 0 ? systemText : "") + p.text };
+        if (p.type === "image_url") return { inlineData: { mimeType: "image/jpeg", data: p.image_url.url.includes(",") ? p.image_url.url.split(",")[1] : p.image_url.url }};
+        return { text: p.text || "" };
+      });
+      systemText = "";
+    } else {
+      // Text message — system prompt pehle user message ke saath add karo
+      const text = (i === 0 && role === "user" ? systemText : "") + m.content;
+      parts = [{ text }];
+      systemText = "";
+    }
+    contents.push({ role, parts });
+  }
 
   const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
 
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ contents, generationConfig: { maxOutputTokens: 1024, temperature: 0.7 } }),
     signal: AbortSignal.timeout(30000)
   });
 
