@@ -1,6 +1,6 @@
 {
-  "name": "Second Brain",
-  "short_name": "Second Brain",
+  "name": "Second Brain AI",
+  "short_name": "Second Brain AI",
   "description": "AI Assistant - Notes, Reminders, Translator, OCR aur News - Sab ek jagah",
   "start_url": "/",
   "scope": "/",
@@ -26,21 +26,18 @@
     {
       "name": "AI Chat",
       "short_name": "AI",
-      "description": "Brain se baat karo",
       "url": "/?tab=chat",
       "icons": [{"src": "/icon.png", "sizes": "192x192"}]
     },
     {
       "name": "Notes",
       "short_name": "Notes",
-      "description": "Note likho",
       "url": "/?tab=notes",
       "icons": [{"src": "/icon.png", "sizes": "192x192"}]
     },
     {
       "name": "Reminder",
       "short_name": "Remind",
-      "description": "Reminder set karo",
       "url": "/?tab=reminder",
       "icons": [{"src": "/icon.png", "sizes": "192x192"}]
     }
