@@ -68,7 +68,7 @@
     .modal h3{color:#a78bfa;margin-bottom:8px;font-size:0.98rem}
     .modal-body-text{color:#ccc;line-height:1.7;white-space:pre-wrap;font-size:0.88rem}
     .modal-btns{display:flex;gap:6px;margin-top:12px;justify-content:flex-end;flex-wrap:wrap}
-    #chatBox{background:var(--bg);border:1px solid var(--border);border-radius:11px;height:340px;overflow-y:auto;padding:12px;margin-bottom:8px}
+    #chatBox{background:var(--bg);border:1px solid var(--border);border-radius:11px;overflow-y:auto;padding:12px;margin-bottom:8px;scroll-behavior:smooth}
     .msg{margin-bottom:12px}
     .msg-label{font-size:0.68rem;color:var(--text3);margin-bottom:3px}
     .msg.user{text-align:right}
@@ -81,6 +81,8 @@
     .ai-md pre code{background:none;padding:0}
     .ai-md strong{color:#e2d9f3}
     .chat-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+    #chatSection .card{display:flex;flex-direction:column;height:calc(100vh - 160px);padding:10px}
+    #chatBox{flex:1!important;height:auto!important;min-height:200px!important}
     .chat-input-row{display:flex;gap:6px;align-items:center}
     .chat-input-row input{margin-bottom:0;flex:1}
     .typing{color:var(--text3);font-style:italic;font-size:0.78rem;padding:3px 0}
@@ -137,7 +139,7 @@
       .trans-box{grid-template-columns:1fr}
       .stats-grid{grid-template-columns:repeat(2,1fr)}
       .container{padding:10px}
-      #chatBox{height:260px}
+      
     }
   </style>
 </head>
@@ -1093,7 +1095,7 @@ function loadOCRImage(file){
 
 async function doOCR(){
   if(!ocrImageData)return showToast("Pehle image upload karo!");
-  const token = localStorage.getItem("sb_token");
+  const token = localStorage.getItem("token");
   if(!token) return showToast("Pehle login karo!");
 
   setProgress("ocrProgress", 20);
