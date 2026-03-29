@@ -109,8 +109,22 @@ app.get("/news", authMiddleware, async (req, res) => {
   } catch (e) { res.status(500).json({ error: "News fetch fail", articles: [] }); }
 });
 
-// ── AI SYSTEM PROMPT
-const SYSTEM_PROMPT = `Tu "Brain" hai — "Second Brain" app ka AI assistant. Tu ek dost ki tarah baat karta hai.
+// ── AI SYSTEM PROMPT — current date dynamically inject hoti hai
+function getSystemPrompt() {
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('hi-IN', { 
+    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+  });
+  const timeStr = now.toLocaleTimeString('hi-IN', { hour: '2-digit', minute: '2-digit' });
+  
+  return `Tu "Brain" hai — "Second Brain" app ka AI assistant. Tu ek dost ki tarah baat karta hai.
+
+AAJ KI DATE AUR TIME (BILKUL SAHI):
+📅 ${dateStr}
+🕐 ${timeStr} IST
+YEAR: ${now.getFullYear()}
+
+YEH DATE 100% SAHI HAI — kabhi galat date mat batana. Agar koi date pooche to yahi batana.
 
 LANGUAGE RULE:
 - User Hindi mein likhe → simple bolchal wali Hindi mein jawab de (jaise "haan yaar", "dekh", "bilkul" — formal nahi)
@@ -120,46 +134,30 @@ LANGUAGE RULE:
 - Hindi ke baad English translation bilkul mat de
 
 STYLE: Dost jaisi boli, seedha kaam ki baat, lists/bullets jab helpful ho, code poochha to puri working code de.`;
+}
 
 // ── WEB SEARCH SYSTEM — DuckDuckGo (unlimited free) + Google (backup) 🌐
 
 // DuckDuckGo — No API key, unlimited free
 async function duckDuckGoSearch(query) {
   try {
-    // DuckDuckGo Instant Answer API
     const ddgUrl = `https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json&no_html=1&skip_disambig=1`;
     const r = await fetch(ddgUrl, {
       headers: { "User-Agent": "Mozilla/5.0 (compatible; SecondBrainBot/1.0)" }
     });
     const data = await r.json();
-
     let context = "";
-
-    // Abstract (main answer)
-    if (data.AbstractText) {
-      context += `Answer: ${data.AbstractText}\nSource: ${data.AbstractURL}\n\n`;
-    }
-
-    // Related Topics
+    if (data.AbstractText) context += `Answer: ${data.AbstractText}\nSource: ${data.AbstractURL}\n\n`;
     if (data.RelatedTopics?.length > 0) {
-      const topics = data.RelatedTopics
-        .filter(t => t.Text)
-        .slice(0, 4)
-        .map((t, i) => `[${i+1}] ${t.Text}\n${t.FirstURL || ""}`)
-        .join("\n\n");
+      const topics = data.RelatedTopics.filter(t => t.Text).slice(0, 4)
+        .map((t, i) => `[${i+1}] ${t.Text}\n${t.FirstURL || ""}`).join("\n\n");
       if (topics) context += topics;
     }
-
-    // Infobox data (facts, dates etc)
     if (data.Infobox?.content?.length > 0) {
-      const facts = data.Infobox.content
-        .slice(0, 5)
-        .map(f => `${f.label}: ${f.value}`)
-        .join("\n");
+      const facts = data.Infobox.content.slice(0, 5).map(f => `${f.label}: ${f.value}`).join("\n");
       if (facts) context += `\n\nFacts:\n${facts}`;
     }
-
-    if (!context.trim()) return null; // koi result nahi mila
+    if (!context.trim()) return null;
     return context;
   } catch (e) {
     console.error("DDG error:", e.message);
@@ -167,7 +165,35 @@ async function duckDuckGoSearch(query) {
   }
 }
 
-// Google Custom Search — 3000/month free (backup)
+// Google News RSS — Real current news, no API key needed
+async function googleNewsSearch(query) {
+  try {
+    const url = `https://news.google.com/rss/search?q=${encodeURIComponent(query)}&hl=hi&gl=IN&ceid=IN:hi`;
+    const r = await fetch(url, { 
+      headers: { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36" },
+      signal: AbortSignal.timeout(6000)
+    });
+    const xml = await r.text();
+    const items = xml.match(/<item>([\s\S]*?)<\/item>/g) || [];
+    if (!items.length) return null;
+
+    const now = new Date();
+    const results = items.slice(0, 5).map((item, i) => {
+      const title = (item.match(/<title><!\[CDATA\[(.*?)\]\]><\/title>/) || item.match(/<title>(.*?)<\/title>/))?.[1] || "";
+      const desc = (item.match(/<description><!\[CDATA\[(.*?)\]\]><\/description>/) || item.match(/<description>(.*?)<\/description>/))?.[1] || "";
+      const pubDate = item.match(/<pubDate>(.*?)<\/pubDate>/)?.[1] || "";
+      const source = item.match(/<source[^>]*>(.*?)<\/source>/)?.[1] || "Google News";
+      return `[${i+1}] ${title.replace(/<[^>]*>/g,"").trim()}\n${desc.replace(/<[^>]*>/g,"").substring(0,200).trim()}\nSource: ${source} | ${pubDate ? new Date(pubDate).toLocaleDateString('hi-IN') : now.toLocaleDateString('hi-IN')}`;
+    }).join("\n\n");
+
+    return `📰 Latest News (${now.toLocaleDateString('hi-IN')}):\n\n${results}`;
+  } catch (e) {
+    console.error("Google News RSS error:", e.message);
+    return null;
+  }
+}
+
+// Google Custom Search — backup (optional, 3000/month free)
 async function googleSearch(query) {
   try {
     if (!GOOGLE_SEARCH_KEY || GOOGLE_SEARCH_KEY === "YOUR_GOOGLE_KEY") return null;
@@ -175,7 +201,6 @@ async function googleSearch(query) {
     const r = await fetch(url);
     const data = await r.json();
     if (!data.items?.length) return null;
-
     return data.items.slice(0, 4).map((item, i) =>
       `[${i+1}] ${item.title}\n${item.snippet}\nSource: ${item.link}`
     ).join("\n\n");
@@ -193,30 +218,44 @@ async function jinaFetch(url) {
       signal: AbortSignal.timeout(5000)
     });
     const text = await r.text();
-    return text.substring(0, 800); // first 800 chars
+    return text.substring(0, 800);
   } catch { return null; }
 }
 
-// Main search — DDG pehle, Google backup, Jina for content
+// Main search — News pehle, phir DDG, phir Google
 async function webSearch(query) {
-  console.log("🔍 Web search:", query);
+  console.log(`🔍 Web search [${new Date().toISOString()}]:`, query);
+  
+  const isNewsQuery = /news|aaj|today|latest|score|result|price|rate|election|match|ipl|vacancy|abhi|kal/i.test(query);
+  
+  let result = null;
 
-  // Step 1: DuckDuckGo try karo
-  let result = await duckDuckGoSearch(query);
+  // News queries ke liye Google News RSS best hai
+  if (isNewsQuery) {
+    result = await googleNewsSearch(query);
+  }
 
-  // Step 2: Agar DDG mein kuch nahi mila, Google try karo
+  // Agar news nahi mila ya non-news query, DDG try karo
   if (!result) {
-    console.log("DDG empty, trying Google...");
+    result = await duckDuckGoSearch(query);
+  }
+
+  // Dono fail — Google News try karo
+  if (!result) {
+    result = await googleNewsSearch(query);
+  }
+
+  // Last resort — Google Custom Search (if key available)
+  if (!result) {
     result = await googleSearch(query);
   }
 
-  // Step 3: Agar dono se results mile, Jina se top URL ka content bhi lo
+  // Extra content fetch karo Jina se
   if (result) {
-    // URL extract karo pehle result se
     const urlMatch = result.match(/https?:\/\/[^\s\n]+/);
     if (urlMatch) {
-      const extraContent = await jinaFetch(urlMatch[0]);
-      if (extraContent) result += `\n\nDetailed content:\n${extraContent}`;
+      const extra = await jinaFetch(urlMatch[0]);
+      if (extra) result += `\n\nDetailed:\n${extra}`;
     }
   }
 
@@ -240,7 +279,7 @@ function needsWebSearch(msg) {
 
 
 function buildMessages(history = [], newsContext = [], msg, image, webContext = null) {
-  const messages = [{ role: "system", content: SYSTEM_PROMPT }];
+  const messages = [{ role: "system", content: getSystemPrompt() }];
 
   // 🌐 Live web search results
   if (webContext) {
@@ -273,47 +312,112 @@ function buildMessages(history = [], newsContext = [], msg, image, webContext = 
 }
 
 // ── AI CHAT — Normal (task planner, translator ke liye bhi use hota hai)
+// ── AI MODELS — Automatic fallback system 🔄
+const AI_MODELS = [
+  "google/gemini-2.0-flash-exp:free",        // 1st choice — fast + web data
+  "google/gemini-flash-1.5-8b:free",          // 2nd — Google backup
+  "meta-llama/llama-3.3-70b-instruct:free",   // 3rd — Llama fallback
+  "mistralai/mistral-7b-instruct:free",        // 4th — last resort
+];
+
+// Smart AI call — automatically next model try karta hai agar koi fail ho
+async function callAI(messages, stream = false) {
+  for (let i = 0; i < AI_MODELS.length; i++) {
+    const model = AI_MODELS[i];
+    try {
+      console.log(`🤖 Trying model ${i+1}/${AI_MODELS.length}: ${model}`);
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${OPENROUTER_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model, messages, stream }),
+        signal: AbortSignal.timeout(30000) // 30 sec timeout
+      });
+
+      if (!response.ok) {
+        const errText = await response.text();
+        console.log(`❌ Model ${model} failed (${response.status}), trying next...`);
+        if (i === AI_MODELS.length - 1) throw new Error(errText);
+        continue; // next model try karo
+      }
+
+      if (stream) return response; // streaming ke liye response return karo
+
+      const data = await response.json();
+      if (data.error) {
+        console.log(`❌ Model ${model} error: ${data.error.message}, trying next...`);
+        if (i === AI_MODELS.length - 1) throw new Error(data.error.message);
+        continue;
+      }
+
+      const reply = data?.choices?.[0]?.message?.content;
+      if (!reply) {
+        console.log(`❌ Model ${model} empty reply, trying next...`);
+        continue;
+      }
+
+      console.log(`✅ Model ${model} success!`);
+      return { reply, model }; // success
+    } catch (e) {
+      console.log(`❌ Model ${model} exception: ${e.message}`);
+      if (i === AI_MODELS.length - 1) throw e;
+    }
+  }
+}
+
+// Image ke liye vision model with fallback
+const VISION_MODELS = [
+  "meta-llama/llama-3.2-11b-vision-instruct:free",
+  "google/gemini-2.0-flash-exp:free",
+];
+
+async function callVisionAI(messages) {
+  for (const model of VISION_MODELS) {
+    try {
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${OPENROUTER_KEY}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ model, messages }),
+        signal: AbortSignal.timeout(30000)
+      });
+      const data = await response.json();
+      if (data.error || !data?.choices?.[0]?.message?.content) continue;
+      return { reply: data.choices[0].message.content, model };
+    } catch { continue; }
+  }
+  throw new Error("Koi bhi vision model kaam nahi kar raha");
+}
+
+// ── AI CHAT — Normal
 app.post("/chat", authMiddleware, async (req, res) => {
   try {
     const { msg, history = [], image, newsContext } = req.body;
     if (!msg) return res.status(400).json({ error: "Message chahiye" });
 
-    // 🌐 Web search — agar current data chahiye
     let webContext = null;
-    if (needsWebSearch(msg)) {
-      webContext = await webSearch(msg);
-    }
+    if (needsWebSearch(msg)) webContext = await webSearch(msg);
 
     const messages = buildMessages(history, newsContext, msg, image, webContext);
-    const model = image ? "meta-llama/llama-3.2-11b-vision-instruct:free" : "google/gemini-2.0-flash-001";
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${OPENROUTER_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model, messages })
-    });
-    const data = await response.json();
-    if (data.error) return res.status(500).json({ error: "AI error: " + data.error.message });
-    res.json({ reply: data?.choices?.[0]?.message?.content || "Koi jawab nahi mila." });
+
+    const result = image ? await callVisionAI(messages) : await callAI(messages);
+    res.json({ reply: result.reply });
   } catch (e) {
     console.error("Chat Error:", e);
-    res.status(500).json({ error: "AI fail ho gaya" });
+    res.status(500).json({ error: "AI fail ho gaya — thodi der baad try karo" });
   }
 });
 
-// ── AI CHAT STREAMING — Word by word (Claude jaisa feel) ⚡
+// ── AI CHAT STREAMING — Word by word ⚡ with auto fallback
 app.post("/chat/stream", authMiddleware, async (req, res) => {
   try {
     const { msg, history = [], image, newsContext } = req.body;
     if (!msg) return res.status(400).json({ error: "Message chahiye" });
 
-    // SSE headers
     res.setHeader("Content-Type", "text/event-stream");
     res.setHeader("Cache-Control", "no-cache");
     res.setHeader("Connection", "keep-alive");
     res.setHeader("X-Accel-Buffering", "no");
     res.flushHeaders();
 
-    // 🌐 Web search — current data ke liye
     let webContext = null;
     if (needsWebSearch(msg)) {
       res.write(`data: ${JSON.stringify({ status: "🌐 Web search ho rahi hai..." })}\n\n`);
@@ -321,56 +425,73 @@ app.post("/chat/stream", authMiddleware, async (req, res) => {
     }
 
     const messages = buildMessages(history, newsContext, msg, image, webContext);
-    const model = image ? "meta-llama/llama-3.2-11b-vision-instruct:free" : "google/gemini-2.0-flash-001";
 
-    const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-      method: "POST",
-      headers: { "Authorization": `Bearer ${OPENROUTER_KEY}`, "Content-Type": "application/json" },
-      body: JSON.stringify({ model, messages, stream: true })
-    });
-
-    if (!response.ok) {
-      const err = await response.text();
-      res.write(`data: ${JSON.stringify({ error: "AI error: " + err })}\n\n`);
+    // Image ke liye non-streaming vision
+    if (image) {
+      const result = await callVisionAI(messages);
+      res.write(`data: ${JSON.stringify({ token: result.reply })}\n\n`);
+      res.write("data: [DONE]\n\n");
       res.end(); return;
     }
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = "";
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      buffer += decoder.decode(value, { stream: true });
-      const lines = buffer.split("\n");
-      buffer = lines.pop(); // incomplete line baad ke liye
-
-      for (const line of lines) {
-        if (!line.startsWith("data: ")) continue;
-        const raw = line.replace("data: ", "").trim();
-        if (raw === "[DONE]") {
-          res.write("data: [DONE]\n\n");
-          res.end(); return;
+    // Streaming — models try karo ek ek karke
+    let streamSuccess = false;
+    for (let i = 0; i < AI_MODELS.length; i++) {
+      const model = AI_MODELS[i];
+      try {
+        if (i > 0) {
+          res.write(`data: ${JSON.stringify({ status: `🔄 Model ${i+1} try ho raha hai...` })}\n\n`);
         }
-        try {
-          const parsed = JSON.parse(raw);
-          const token = parsed?.choices?.[0]?.delta?.content || "";
-          if (token) res.write(`data: ${JSON.stringify({ token })}\n\n`);
-        } catch {}
+        const response = await callAI(messages, true);
+        if (!response?.body) continue;
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let buffer = "";
+        let hasContent = false;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop();
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const raw = line.replace("data: ", "").trim();
+            if (raw === "[DONE]") {
+              res.write("data: [DONE]\n\n");
+              res.end();
+              streamSuccess = true;
+              return;
+            }
+            try {
+              const parsed = JSON.parse(raw);
+              const token = parsed?.choices?.[0]?.delta?.content || "";
+              if (token) { hasContent = true; res.write(`data: ${JSON.stringify({ token })}\n\n`); }
+            } catch {}
+          }
+        }
+
+        if (hasContent) { streamSuccess = true; break; }
+      } catch (e) {
+        console.log(`Stream model ${model} failed:`, e.message);
+        if (i === AI_MODELS.length - 1) break;
       }
     }
 
+    if (!streamSuccess) {
+      res.write(`data: ${JSON.stringify({ error: "Sab models busy hain, thodi der baad try karo" })}\n\n`);
+    }
     res.write("data: [DONE]\n\n");
     res.end();
   } catch (e) {
     console.error("Stream Error:", e);
-    try {
-      res.write(`data: ${JSON.stringify({ error: "AI fail ho gaya" })}\n\n`);
-      res.end();
-    } catch {}
+    try { res.write(`data: ${JSON.stringify({ error: "AI fail ho gaya" })}\n\n`); res.end(); } catch {}
   }
 });
 
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log(`🚀 Server port ${PORT} pe chal raha hai — Gemini Flash ⚡`));
+app.listen(PORT, () => console.log(`🚀 Server port ${PORT} pe chal raha hai — Auto Fallback AI ⚡`));
