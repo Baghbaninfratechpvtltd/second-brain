@@ -309,39 +309,30 @@ function buildMessages(history = [], newsContext = [], msg, image, webContext = 
 
 // ── GEMINI AI — Main engine
 async function callAI(messages, stream = false) {
-  const systemMsg = messages.find(m => m.role === "system");
+  // Saare system messages ek saath collect karo
+  const systemParts = messages.filter(m => m.role === "system").map(m => m.content).join("\n\n");
   const chatMsgs = messages.filter(m => m.role !== "system");
 
-  // System prompt ko pehle user message ke saath jod do (v1 compatible)
-  const contents = [];
-  
-  // System prompt + first user message ek saath
-  let systemText = systemMsg ? systemMsg.content + "\n\n" : "";
-  
-  for (let i = 0; i < chatMsgs.length; i++) {
-    const m = chatMsgs[i];
+  const contents = chatMsgs.map((m, i) => {
     const role = m.role === "assistant" ? "model" : "user";
-    
     let parts;
+
     if (Array.isArray(m.content)) {
-      // Image message
       parts = m.content.map(p => {
-        if (p.type === "text") return { text: (i === 0 ? systemText : "") + p.text };
-        if (p.type === "image_url") return { inlineData: { mimeType: "image/jpeg", data: p.image_url.url.includes(",") ? p.image_url.url.split(",")[1] : p.image_url.url }};
-        return { text: p.text || "" };
+        if (p.type === "image_url") {
+          const base64 = p.image_url.url.includes(",") ? p.image_url.url.split(",")[1] : p.image_url.url;
+          return { inlineData: { mimeType: "image/jpeg", data: base64 }};
+        }
+        return { text: (i === 0 && role === "user" && systemParts ? systemParts + "\n\n" : "") + (p.text || "") };
       });
-      systemText = "";
     } else {
-      // Text message — system prompt pehle user message ke saath add karo
-      const text = (i === 0 && role === "user" ? systemText : "") + m.content;
+      const text = (i === 0 && role === "user" && systemParts ? systemParts + "\n\n" : "") + m.content;
       parts = [{ text }];
-      systemText = "";
     }
-    contents.push({ role, parts });
-  }
+    return { role, parts };
+  });
 
-  const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${GEMINI_KEY}`;
-
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_KEY}`;
   const response = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -351,15 +342,13 @@ async function callAI(messages, stream = false) {
 
   const data = await response.json();
   if (!response.ok) throw new Error(data?.error?.message || "Gemini error");
-
   const reply = data?.candidates?.[0]?.content?.parts?.[0]?.text;
-  if (!reply) throw new Error("Gemini ne empty reply diya");
-
-  console.log("✅ Gemini reply success");
-  return { reply, model: "gemini-1.5-flash" };
+  if (!reply) throw new Error("Gemini empty reply");
+  console.log("✅ Gemini success");
+  return { reply, model: "gemini-1.5-flash-latest" };
 }
 
-// Vision bhi Gemini se — same function handles images too
+// Vision bhi Gemini se
 async function callVisionAI(messages) {
   return await callAI(messages);
 }
