@@ -828,6 +828,7 @@ async function sendMsg(){
         }
         try{
           const parsed=JSON.parse(raw);
+          if(parsed.status){const el=document.getElementById(aid);if(el)el.innerHTML=`<span style="color:#a78bfa;font-size:0.8rem">${esc(parsed.status)}</span><span class="cursor-blink">▍</span>`;chatBox.scrollTop=chatBox.scrollHeight;}
           if(parsed.error){const el=document.getElementById(aid);if(el)el.innerHTML=`<span style="color:var(--red)">❌ ${esc(parsed.error)}</span>`;return;}
           if(parsed.token){fullText+=parsed.token;const el=document.getElementById(aid);if(el){el.textContent=fullText;el.innerHTML+=`<span class="cursor-blink">▍</span>`;}chatBox.scrollTop=chatBox.scrollHeight;}
         }catch{}
