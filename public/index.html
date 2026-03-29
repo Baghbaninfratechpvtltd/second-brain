@@ -979,7 +979,20 @@ function clearOCR(){
   showToast("🗑 Clear ho gaya!");
 }
 
-function saveReminders(){localStorage.setItem("sb_reminders",JSON.stringify(reminders));updateStats();}
+function saveReminders(){
+  localStorage.setItem("sb_reminders",JSON.stringify(reminders));
+  updateStats();
+  syncRemindersToSW(); // Background reminder ke liye SW ko sync karo
+}
+
+function syncRemindersToSW(){
+  if(!("serviceWorker" in navigator))return;
+  navigator.serviceWorker.ready.then(reg=>{
+    if(reg.active){
+      reg.active.postMessage({type:"SYNC_REMINDERS",reminders:reminders});
+    }
+  }).catch(()=>{});
+}
 
 function renderReminders(){
   const box=document.getElementById("reminderList");
@@ -1292,7 +1305,13 @@ function setProgress(id,val){document.getElementById(id).style.width=val+"%";}
 function showToast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");setTimeout(()=>t.classList.remove("show"),3000);}
 function esc(str){return String(str||"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/\n/g,"<br>");}
 
-if("serviceWorker"in navigator)navigator.serviceWorker.register("/sw.js").catch(()=>{});
+if("serviceWorker"in navigator){
+  navigator.serviceWorker.register("/sw.js").then(reg=>{
+    console.log("✅ SW registered");
+    // App load hone pe reminders sync karo
+    setTimeout(syncRemindersToSW, 2000);
+  }).catch(()=>{});
+}
 
 // ── VOICE SETTINGS FUNCTIONS
 let manualVoice = null;
