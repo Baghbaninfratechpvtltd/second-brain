@@ -1093,7 +1093,7 @@ function loadOCRImage(file){
 
 async function doOCR(){
   if(!ocrImageData)return showToast("Pehle image upload karo!");
-  const token = localStorage.getItem("token");
+  const token = localStorage.getItem("sb_token");
   if(!token) return showToast("Pehle login karo!");
 
   setProgress("ocrProgress", 20);
