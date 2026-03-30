@@ -388,5 +388,71 @@ async function callAI(messages) {
 async function callVisionAI(messages) {
   return await callGemini(messages);
 }
+
+// ── AI CHAT — Normal
+app.post("/chat", authMiddleware, async (req, res) => {
+  try {
+    const { msg, history = [], image, newsContext } = req.body;
+    if (!msg) return res.status(400).json({ error: "Message chahiye" });
+
+    let webContext = null;
+    if (needsWebSearch(msg)) webContext = await webSearch(msg);
+
+    const messages = buildMessages(history, newsContext, msg, image, webContext);
+
+    const result = image ? await callVisionAI(messages) : await callAI(messages);
+    res.json({ reply: result.reply });
+  } catch (e) {
+    console.error("Chat Error:", e);
+    res.status(500).json({ error: "AI fail ho gaya — thodi der baad try karo" });
+  }
+});
+
+// ── AI CHAT STREAMING — Word by word ⚡ with auto fallback
+app.post("/chat/stream", authMiddleware, async (req, res) => {
+  try {
+    const { msg, history = [], image, newsContext } = req.body;
+    if (!msg) return res.status(400).json({ error: "Message chahiye" });
+
+    res.setHeader("Content-Type", "text/event-stream");
+    res.setHeader("Cache-Control", "no-cache");
+    res.setHeader("Connection", "keep-alive");
+    res.setHeader("X-Accel-Buffering", "no");
+    res.flushHeaders();
+
+    let webContext = null;
+    if (needsWebSearch(msg)) {
+      res.write(`data: ${JSON.stringify({ status: "🌐 Web search ho rahi hai..." })}\n\n`);
+      webContext = await webSearch(msg);
+    }
+
+    const messages = buildMessages(history, newsContext, msg, image, webContext);
+
+    // Image ke liye non-streaming vision
+    if (image) {
+      const result = await callVisionAI(messages);
+      res.write(`data: ${JSON.stringify({ token: result.reply })}\n\n`);
+      res.write("data: [DONE]\n\n");
+      res.end(); return;
+    }
+
+    // Gemini se reply lo aur word-by-word bhejo
+    try {
+      const result = await callAI(messages);
+      const words = result.reply.split(" ");
+      for (const word of words) {
+        res.write(`data: ${JSON.stringify({ token: word + " " })}\n\n`);
+      }
+    } catch (e) {
+      res.write(`data: ${JSON.stringify({ error: "AI fail ho gaya: " + e.message })}\n\n`);
+    }
+    res.write("data: [DONE]\n\n");
+    res.end();
+  } catch (e) {
+    console.error("Stream Error:", e);
+    try { res.write(`data: ${JSON.stringify({ error: "AI fail ho gaya" })}\n\n`); res.end(); } catch {}
+  }
+});
+
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server port ${PORT} pe chal raha hai — Auto Fallback AI ⚡`));
