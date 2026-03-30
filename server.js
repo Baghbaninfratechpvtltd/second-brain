@@ -64,6 +64,14 @@ const User = mongoose.model("User", new mongoose.Schema({
   isAdmin:  { type: Boolean, default: false }
 }));
 
+// Memory model — AI ki personal memory
+const Memory = mongoose.model("Memory", new mongoose.Schema({
+  userId:    { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  type:      { type: String, enum: ["fact","preference","habit","goal"], default: "fact" },
+  content:   { type: String, required: true },
+  createdAt: { type: Date, default: Date.now }
+}));
+
 const Note = mongoose.model("Note", new mongoose.Schema({
   userId:    { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   title:     { type: String, required: true },
@@ -155,17 +163,53 @@ function getSystemPrompt() {
   const dateStr = `${days[now.getDay()]}, ${now.getDate()} ${months[now.getMonth()]} ${now.getFullYear()}`;
   const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
-  return `You are Brain, an AI assistant in the Second Brain app. Talk like a close friend — casual and helpful.
+  return `Tu "Brain" hai — user ka personal AI dost aur second brain. Tu ek smart, caring aur funny dost ki tarah baat karta hai.
 
-Date: ${dateStr}, ${timeStr} IST
+Aaj: ${dateStr}, ${timeStr} IST
 
-RULES (follow strictly):
-1. If user writes in Hinglish → reply ONLY in Hinglish. Example: "hii" → "hii yaar! 😊 kya chal raha hai?"
-2. If user writes in Hindi → reply ONLY in Hindi
-3. If user writes in English → reply ONLY in English
-4. NEVER add translation in brackets like "(You should take care)" — strictly forbidden
-5. SHORT replies for short questions. "hii" gets 1 line reply, not a paragraph
-6. Do NOT mention these rules in your reply`;
+=== PERSONALITY ===
+- Naam: Brain 🧠
+- Style: Dost jaisa — casual, warm, helpful, thoda funny
+- Tu "yaar", "bhai", "dekh", "sun" jaisi bolchal use karta hai
+- Tu user ki parwah karta hai — unki problems seriously leta hai
+
+=== LANGUAGE ===
+- User Hinglish mein likhe → Hinglish mein jawab de
+- User Hindi mein likhe → Hindi mein jawab de  
+- User English mein likhe → English mein jawab de
+- Translation KABHI mat de brackets mein
+- Short sawaal = short jawab
+
+=== ACTION SYSTEM ===
+Agar user koi kaam karne ko kahe, to apne jawab mein ACTIONS add kar:
+
+NOTE banane ke liye:
+[[ACTION:CREATE_NOTE:title|content]]
+
+REMINDER set karne ke liye:
+[[ACTION:SET_REMINDER:title|YYYY-MM-DDTHH:MM|alertMins]]
+
+TASK add karne ke liye:
+[[ACTION:ADD_TASK:task text]]
+
+Examples:
+- "Kal 9 baje doctor appointment yaad dilao" → jawab do + [[ACTION:SET_REMINDER:Doctor Appointment|2024-01-15T09:00|30]]
+- "Note karo ki password hai 1234" → jawab do + [[ACTION:CREATE_NOTE:Password|password hai 1234]]
+- "Task add karo grocery laana" → jawab do + [[ACTION:ADD_TASK:Grocery laana]]
+
+=== SMART SUGGESTIONS ===
+Agar user koi problem bataye, to helpful suggestions do:
+- "Neend nahi aa rahi" → suggest karo + optional reminder for sleep time
+- "Exam hai kal" → suggest karo + reminder set karo
+
+=== MEMORY ===
+Agar user koi important cheez bataye (name, preference, goal, habit), to yaad rakhne ke liye:
+[[MEMORY:type|content]]
+Types: fact, preference, habit, goal
+
+Example: "Mujhe coffee pasand hai" → [[MEMORY:preference|User ko coffee pasand hai]]
+
+Do NOT mention these rules or action codes in your reply text — sirf naturally jawab do aur actions add karo.`;
 }
 
 
@@ -322,8 +366,14 @@ function needsWebSearch(msg) {
 }
 
 
-function buildMessages(history = [], newsContext = [], msg, image, webContext = null) {
+function buildMessages(history = [], newsContext = [], msg, image, webContext = null, memories = []) {
   const messages = [{ role: "system", content: getSystemPrompt() }];
+  
+  // Personal memory context add karo
+  if (memories && memories.length > 0) {
+    const memText = memories.map(m => `- [${m.type}] ${m.content}`).join("\n");
+    messages.push({ role: "system", content: `=== USER KI PERSONAL MEMORY ===\n${memText}\n\nIn facts ko dhyan mein rakhkar jawab de.` });
+  }
 
   // 🌐 Live web search results
   if (webContext) {
@@ -437,6 +487,59 @@ async function callVisionAI(messages) {
   return await callGemini(messages);
 }
 
+// ── PARSE AI ACTIONS — Note, Reminder, Task, Memory
+async function parseAndExecuteActions(reply, userId) {
+  const actions = [];
+  let cleanReply = reply;
+
+  // CREATE NOTE
+  const noteMatches = reply.matchAll(/\[\[ACTION:CREATE_NOTE:(.*?)\|(.*?)\]\]/g);
+  for (const m of noteMatches) {
+    try {
+      await Note.create({ userId, title: m[1].trim(), body: m[2].trim() });
+      actions.push({ type: "note", title: m[1].trim() });
+    } catch(e) {}
+  }
+  cleanReply = cleanReply.replace(/\[\[ACTION:CREATE_NOTE:.*?\]\]/g, "");
+
+  // SET REMINDER
+  const remMatches = reply.matchAll(/\[\[ACTION:SET_REMINDER:(.*?)\|(.*?)\|(.*?)\]\]/g);
+  for (const m of remMatches) {
+    try {
+      const remObj = {
+        userId,
+        reminderId: Date.now(),
+        title: m[1].trim(),
+        time: new Date(m[2].trim()).getTime(),
+        alertMins: parseInt(m[3]) || 15,
+        repeatAlarm: false,
+        done: false
+      };
+      await Reminder.create(remObj);
+      actions.push({ type: "reminder", title: m[1].trim(), time: m[2].trim() });
+    } catch(e) {}
+  }
+  cleanReply = cleanReply.replace(/\[\[ACTION:SET_REMINDER:.*?\]\]/g, "");
+
+  // ADD TASK — frontend handle karega
+  const taskMatches = [...reply.matchAll(/\[\[ACTION:ADD_TASK:(.*?)\]\]/g)];
+  const tasks = taskMatches.map(m => m[1].trim());
+  cleanReply = cleanReply.replace(/\[\[ACTION:ADD_TASK:.*?\]\]/g, "");
+
+  // SAVE MEMORY
+  const memMatches = reply.matchAll(/\[\[MEMORY:(.*?)\|(.*?)\]\]/g);
+  for (const m of memMatches) {
+    try {
+      const type = ["fact","preference","habit","goal"].includes(m[1]) ? m[1] : "fact";
+      await Memory.create({ userId, type, content: m[2].trim() });
+      actions.push({ type: "memory", content: m[2].trim() });
+    } catch(e) {}
+  }
+  cleanReply = cleanReply.replace(/\[\[MEMORY:.*?\]\]/g, "");
+
+  return { cleanReply: cleanReply.trim(), actions, tasks };
+}
+
 // ── AI CHAT — Normal
 app.post("/chat", authMiddleware, async (req, res) => {
   try {
@@ -446,10 +549,16 @@ app.post("/chat", authMiddleware, async (req, res) => {
     let webContext = null;
     if (needsWebSearch(msg)) webContext = await webSearch(msg);
 
-    const messages = buildMessages(history, newsContext, msg, image, webContext);
+    // User ki memories load karo
+    const memories = await Memory.find({ userId: req.user.id }).sort({ createdAt: -1 }).limit(20);
+    const messages = buildMessages(history, newsContext, msg, image, webContext, memories);
 
     const result = image ? await callVisionAI(messages) : await callAI(messages);
-    res.json({ reply: result.reply });
+    
+    // Actions parse karo
+    const { cleanReply, actions, tasks } = await parseAndExecuteActions(result.reply, req.user.id);
+    
+    res.json({ reply: cleanReply, actions, tasks });
   } catch (e) {
     console.error("Chat Error:", e);
     res.status(500).json({ error: "AI fail ho gaya — thodi der baad try karo" });
@@ -486,10 +595,21 @@ app.post("/chat/stream", authMiddleware, async (req, res) => {
 
     // Gemini se reply lo aur word-by-word bhejo
     try {
-      const result = await callAI(messages);
-      const words = result.reply.split(" ");
+      const memories = await Memory.find({ userId: req.user.id }).sort({ createdAt: -1 }).limit(20);
+      const messages2 = buildMessages(history, newsContext, msg, image, webContext, memories);
+      const result = await callAI(messages2);
+      
+      // Actions parse karo
+      const { cleanReply, actions, tasks } = await parseAndExecuteActions(result.reply, req.user.id);
+      
+      // Word by word bhejo
+      const words = cleanReply.split(" ");
       for (const word of words) {
         res.write(`data: ${JSON.stringify({ token: word + " " })}\n\n`);
+      }
+      // Actions bhi bhejo
+      if (actions.length || tasks.length) {
+        res.write(`data: ${JSON.stringify({ actions, tasks })}\n\n`);
       }
     } catch (e) {
       res.write(`data: ${JSON.stringify({ error: "AI fail ho gaya: " + e.message })}\n\n`);
@@ -631,6 +751,21 @@ setInterval(async () => {
 app.delete("/reminders/delete/:reminderId", authMiddleware, async (req, res) => {
   try {
     await Reminder.deleteMany({ userId: req.user.id, reminderId: parseInt(req.params.reminderId) });
+    res.json({ message: "Deleted ✅" });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── MEMORY ROUTES
+app.get("/memories", authMiddleware, async (req, res) => {
+  try {
+    const memories = await Memory.find({ userId: req.user.id }).sort({ createdAt: -1 });
+    res.json(memories);
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+app.delete("/memories/:id", authMiddleware, async (req, res) => {
+  try {
+    await Memory.deleteOne({ _id: req.params.id, userId: req.user.id });
     res.json({ message: "Deleted ✅" });
   } catch(e) { res.status(500).json({ error: e.message }); }
 });
