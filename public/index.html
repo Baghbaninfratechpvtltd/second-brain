@@ -283,12 +283,21 @@
         <div class="card-title">⏰ Upcoming Reminders</div>
         <div id="upcomingReminders"><div class="empty-state">Koi reminder nahi</div></div>
       </div>
+
+      <!-- Brain Memory Panel -->
+      <div class="card">
+        <div class="card-title">🧠 Brain ki Memory <span style="font-size:0.72rem;color:var(--text2);font-weight:400">(AI ne kya yaad rakha)</span></div>
+        <div id="memoryList" style="max-height:150px;overflow-y:auto">
+          <div style="color:var(--text2);font-size:0.82rem">Loading...</div>
+        </div>
+      </div>
     </div>
 
     <!-- NOTES -->
     <div id="notesSection" style="display:none">
       <div class="card">
         <div class="card-title">📝 Naya Note</div>
+        <button id="voiceNoteBtn2" onclick="startVoiceToNote()" style="width:100%;margin-bottom:10px;background:#1e1e3f;border:1px solid var(--purple);color:var(--purple)">🎤 Bolo aur Note Banao</button>
         <input id="noteTitle" placeholder="Title">
         <div class="row" style="margin-bottom:8px">
           <input id="noteTag" placeholder="Tag (kaam, padhai, idea...)" style="margin-bottom:0">
@@ -901,7 +910,7 @@ async function sendMsg(){
     document.getElementById(tid)?.remove();
     chatBox.innerHTML+=`<div class="msg ai"><div class="msg-label">AI 🤖</div><div class="bubble ai-md" id="${aid}"><span class="cursor-blink">▍</span></div></div>`;
     chatBox.scrollTop=chatBox.scrollHeight;
-    const r=await fetch(BASE+"/chat/stream",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({msg,history:chatHistory,newsContext})});
+    const r=await fetch(BASE+"/chat/stream",{method:"POST",headers:{"Content-Type":"application/json","Authorization":"Bearer "+token},body:JSON.stringify({msg,history:chatHistory,newsContext,userId:true})});
     if(!r.ok||!r.body){
       const d=await r.json().catch(()=>({error:"Server error"}));
       const reply=d.reply||d.error||"Koi jawab nahi.";
@@ -928,6 +937,7 @@ async function sendMsg(){
           if(parsed.status){const el=document.getElementById(aid);if(el)el.innerHTML=`<span style="color:#a78bfa;font-size:0.8rem">${esc(parsed.status)}</span><span class="cursor-blink">▍</span>`;chatBox.scrollTop=chatBox.scrollHeight;}
           if(parsed.error){const el=document.getElementById(aid);if(el)el.innerHTML=`<span style="color:var(--red)">❌ ${esc(parsed.error)}</span>`;return;}
           if(parsed.token){fullText+=parsed.token;const el=document.getElementById(aid);if(el){el.textContent=fullText;el.innerHTML+=`<span class="cursor-blink">▍</span>`;}chatBox.scrollTop=chatBox.scrollHeight;}
+          if(parsed.actions||parsed.tasks){handleAIActions(parsed.actions||[],parsed.tasks||[]);}
         }catch{}
       }
     }
@@ -1569,6 +1579,7 @@ if("serviceWorker"in navigator){
     console.log("✅ SW registered");
     // App load hone pe reminders sync karo
     setTimeout(syncRemindersToSW, 2000);
+    setTimeout(loadMemories, 1000); // Brain memories load karo
     // Custom sound restore
     customSoundData = localStorage.getItem("customSoundData") || null;
     setTimeout(registerFCMToken, 3000);
@@ -1810,5 +1821,153 @@ function swapConv() {
 updateConvUnits();
 </script>
 
+<script>
+// ── ACTION HANDLER — AI ke actions handle karo
+function handleAIActions(actions, tasks) {
+  if (!actions || !actions.length) return;
+  
+  for (const action of actions) {
+    if (action.type === "note") {
+      showToast("📝 Note banaya: " + action.title);
+      loadNotes(); // refresh notes
+    }
+    if (action.type === "reminder") {
+      showToast("🔔 Reminder set: " + action.title);
+    }
+    if (action.type === "memory") {
+      showToast("🧠 Yaad rakha: " + action.content);
+    }
+  }
+  
+  // Tasks add karo
+  if (tasks && tasks.length) {
+    for (const t of tasks) {
+      tasks_list.push({id: Date.now() + Math.random(), text: t, done: false});
+      showToast("✅ Task add: " + t);
+    }
+    saveTasks();
+    renderTasks();
+  }
+}
+
+// ── VOICE TO NOTE — Bolo aur note ban jaaye
+let voiceToNoteRecording = false;
+let voiceToNoteRecognition = null;
+
+function startVoiceToNote() {
+  if (!("webkitSpeechRecognition" in window) && !("SpeechRecognition" in window)) {
+    return showToast("❌ Browser voice support nahi karta");
+  }
+  
+  if (voiceToNoteRecording) {
+    voiceToNoteRecognition && voiceToNoteRecognition.stop();
+    voiceToNoteRecording = false;
+    document.getElementById("voiceNoteBtn2").textContent = "🎤 Bolo aur Note Banao";
+    return;
+  }
+  
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  voiceToNoteRecognition = new SR();
+  voiceToNoteRecognition.lang = "hi-IN";
+  voiceToNoteRecognition.continuous = false;
+  voiceToNoteRecognition.interimResults = false;
+  
+  voiceToNoteRecognition.onstart = () => {
+    voiceToNoteRecording = true;
+    document.getElementById("voiceNoteBtn2").textContent = "⏹ Recording... (click to stop)";
+    document.getElementById("voiceNoteBtn2").style.background = "#dc2626";
+    showToast("🎤 Bol rahe ho... note ban jaayega!");
+  };
+  
+  voiceToNoteRecognition.onresult = async (e) => {
+    const text = e.results[0][0].transcript;
+    voiceToNoteRecording = false;
+    document.getElementById("voiceNoteBtn2").textContent = "🎤 Bolo aur Note Banao";
+    document.getElementById("voiceNoteBtn2").style.background = "";
+    
+    if (!text) return showToast("❌ Kuch nahi suna");
+    
+    showToast("⏳ Note ban raha hai...");
+    
+    // AI se title suggest karwao
+    const token = localStorage.getItem("sb_token");
+    try {
+      const r = await fetch(BASE + "/chat", {
+        method: "POST",
+        headers: {"Content-Type":"application/json","Authorization":"Bearer "+token},
+        body: JSON.stringify({
+          msg: `Is text ka ek short title do (max 5 words) aur phir text ko clean karke do. Format: TITLE|||CONTENT\n\nText: ${text}`,
+          history: []
+        })
+      });
+      const data = await r.json();
+      let title = "Voice Note";
+      let body = text;
+      
+      if (data.reply && data.reply.includes("|||")) {
+        const parts = data.reply.split("|||");
+        title = parts[0].trim().replace(/^["']|["']$/g, "");
+        body = parts[1] ? parts[1].trim() : text;
+      }
+      
+      // Note save karo
+      await fetch(BASE + "/notes", {
+        method: "POST",
+        headers: {"Content-Type":"application/json","Authorization":"Bearer "+token},
+        body: JSON.stringify({ title, body })
+      });
+      
+      loadNotes();
+      showToast("✅ Voice Note save ho gaya: " + title);
+    } catch(e) {
+      // Fallback - seedha save karo
+      const token2 = localStorage.getItem("sb_token");
+      await fetch(BASE + "/notes", {
+        method: "POST",
+        headers: {"Content-Type":"application/json","Authorization":"Bearer "+token2},
+        body: JSON.stringify({ title: "Voice Note " + new Date().toLocaleTimeString(), body: text })
+      });
+      loadNotes();
+      showToast("✅ Voice Note save ho gaya!");
+    }
+  };
+  
+  voiceToNoteRecognition.onerror = () => {
+    voiceToNoteRecording = false;
+    document.getElementById("voiceNoteBtn2").textContent = "🎤 Bolo aur Note Banao";
+    document.getElementById("voiceNoteBtn2").style.background = "";
+    showToast("❌ Voice capture fail");
+  };
+  
+  voiceToNoteRecognition.start();
+}
+
+// ── MEMORY PANEL
+async function loadMemories() {
+  const token = localStorage.getItem("sb_token");
+  try {
+    const r = await fetch(BASE + "/memories", { headers: {"Authorization":"Bearer "+token} });
+    const mems = await r.json();
+    const box = document.getElementById("memoryList");
+    if (!box) return;
+    if (!mems.length) { box.innerHTML = '<div style="color:var(--text2);font-size:0.82rem">Abhi koi memory nahi — AI se baat karo!</div>'; return; }
+    box.innerHTML = mems.map(m => `
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px;background:var(--bg3);border-radius:8px;margin-bottom:6px">
+        <div>
+          <span style="font-size:0.7rem;color:var(--purple);text-transform:uppercase">${m.type}</span>
+          <div style="font-size:0.85rem;color:var(--text)">${m.content}</div>
+        </div>
+        <button class="danger sm" onclick="deleteMemory('${m._id}')">🗑</button>
+      </div>`).join("");
+  } catch(e) {}
+}
+
+async function deleteMemory(id) {
+  const token = localStorage.getItem("sb_token");
+  await fetch(BASE + "/memories/" + id, { method: "DELETE", headers: {"Authorization":"Bearer "+token} });
+  loadMemories();
+  showToast("🗑 Memory delete ho gayi");
+}
+</script>
 </body>
 </html>
