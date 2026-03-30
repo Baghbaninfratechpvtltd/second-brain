@@ -4,6 +4,19 @@ const cors = require("cors");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const path = require("path");
+const admin = require("firebase-admin");
+
+// Firebase Admin init
+if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
+  admin.initializeApp({
+    credential: admin.credential.cert({
+      projectId: process.env.FIREBASE_PROJECT_ID,
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+    })
+  });
+  console.log("✅ Firebase Admin initialized");
+}
 
 const app = express();
 app.use(cors());
@@ -23,6 +36,13 @@ mongoose.connect(MONGO_URI)
   .catch(e => console.log("❌ MongoDB Error:", e.message));
 
 // ── MODELS
+// FCM tokens store karne ke liye
+const FCMToken = mongoose.model("FCMToken", new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  token:  { type: String, required: true },
+  updatedAt: { type: Date, default: Date.now }
+}));
+
 const User = mongoose.model("User", new mongoose.Schema({
   email:    { type: String, unique: true, required: true },
   password: { type: String, required: true }
@@ -464,6 +484,125 @@ app.post("/chat/stream", authMiddleware, async (req, res) => {
     try { res.write(`data: ${JSON.stringify({ error: "AI fail ho gaya" })}\n\n`); res.end(); } catch {}
   }
 });
+
+// ── FCM TOKEN — Save karo
+app.post("/fcm-token", authMiddleware, async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) return res.status(400).json({ error: "Token chahiye" });
+    await FCMToken.findOneAndUpdate(
+      { userId: req.user.id },
+      { userId: req.user.id, token, updatedAt: new Date() },
+      { upsert: true, new: true }
+    );
+    res.json({ message: "Token saved ✅" });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// ── SEND FCM NOTIFICATION — Reminder time pe call karo
+async function sendFCMNotification(userId, title, body) {
+  try {
+    if (!admin.apps.length) return;
+    const fcmDoc = await FCMToken.findOne({ userId });
+    if (!fcmDoc) return;
+    
+    await admin.messaging().send({
+      token: fcmDoc.token,
+      notification: { title, body },
+      android: {
+        priority: "high",
+        notification: { sound: "default", channelId: "reminders" }
+      },
+      webpush: {
+        headers: { Urgency: "high" },
+        notification: {
+          title, body,
+          icon: "/icon.png",
+          requireInteraction: true,
+          vibrate: [300, 100, 300]
+        }
+      }
+    });
+    console.log("✅ FCM notification sent to user:", userId);
+  } catch(e) {
+    console.error("FCM send error:", e.message);
+  }
+}
+
+// ── REMINDER SCHEDULER — Server side check every minute
+const Reminder = mongoose.model("Reminder", new mongoose.Schema({
+  userId:    { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  reminderId: { type: Number, required: true },
+  title:     { type: String, required: true },
+  time:      { type: Number, required: true },
+  alertMins: { type: Number, default: 15 },
+  repeatAlarm: { type: Boolean, default: false },
+  done:      { type: Boolean, default: false },
+  notified:  { type: Boolean, default: false }
+}));
+
+// Reminders sync karo
+app.post("/reminders/sync", authMiddleware, async (req, res) => {
+  try {
+    const { reminders } = req.body;
+    if (!reminders) return res.status(400).json({ error: "Reminders chahiye" });
+    // Purane delete karo
+    await Reminder.deleteMany({ userId: req.user.id });
+    // Naye save karo
+    for (const rem of reminders) {
+      await Reminder.create({
+        userId: req.user.id,
+        reminderId: rem.id,
+        title: rem.title,
+        time: rem.time,
+        alertMins: rem.alertMins || 15,
+        repeatAlarm: rem.repeatAlarm || false,
+        done: rem.done || false
+      });
+    }
+    res.json({ message: "Synced ✅" });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
+// Har minute check karo — server side reminder fire
+setInterval(async () => {
+  try {
+    const now = Date.now();
+    const window = 60000; // 1 minute window
+
+    const reminders = await Reminder.find({ done: false, notified: false });
+    for (const rem of reminders) {
+      const diff = rem.time - now;
+      const alertMs = rem.alertMins * 60 * 1000;
+
+      // Alert time
+      if (rem.alertMins > 0 && diff > (alertMs - window) && diff < (alertMs + window)) {
+        const when = rem.alertMins >= 60 ? `${rem.alertMins/60} ghante pehle` : `${rem.alertMins} minute pehle`;
+        await sendFCMNotification(rem.userId, "⏰ Second Brain AI", `${when}: ${rem.title}`);
+      }
+
+      // Exact time
+      if (diff > -window && diff < window) {
+        await sendFCMNotification(rem.userId, "🔔 Reminder!", rem.title);
+        await Reminder.updateOne({ _id: rem._id }, { notified: true });
+        
+        // Repeat if enabled
+        if (rem.repeatAlarm) {
+          let count = 0;
+          const repeatInterval = setInterval(async () => {
+            count++;
+            const current = await Reminder.findById(rem._id);
+            if (!current || current.done || count >= 5) {
+              clearInterval(repeatInterval);
+              return;
+            }
+            await sendFCMNotification(rem.userId, "🔔 Reminder!", rem.title);
+          }, 5 * 60 * 1000); // 5 min
+        }
+      }
+    }
+  } catch(e) { console.error("Reminder check error:", e.message); }
+}, 60000);
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server port ${PORT} pe chal raha hai — Auto Fallback AI ⚡`));
