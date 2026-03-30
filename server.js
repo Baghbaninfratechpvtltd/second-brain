@@ -39,6 +39,7 @@ app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.ht
 
 const MONGO_URI         = process.env.MONGO_URI         || "YOUR_MONGODB_URI";
 const JWT_SECRET        = process.env.JWT_SECRET        || "supersecretkey123";
+const ADMIN_EMAIL       = process.env.ADMIN_EMAIL        || "";
 const OPENROUTER_KEY    = process.env.OPENROUTER_KEY    || "YOUR_OPENROUTER_KEY";
 const GEMINI_KEY        = process.env.GEMINI_KEY         || "";
 const GOOGLE_SEARCH_KEY = process.env.GOOGLE_SEARCH_KEY || "YOUR_GOOGLE_KEY";   // optional backup
@@ -58,7 +59,8 @@ const FCMToken = mongoose.model("FCMToken", new mongoose.Schema({
 
 const User = mongoose.model("User", new mongoose.Schema({
   email:    { type: String, unique: true, required: true },
-  password: { type: String, required: true }
+  password: { type: String, required: true },
+  isAdmin:  { type: Boolean, default: false }
 }));
 
 const Note = mongoose.model("Note", new mongoose.Schema({
@@ -82,7 +84,8 @@ app.post("/signup", async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) return res.status(400).json({ error: "Email aur password chahiye" });
     if (await User.findOne({ email })) return res.status(400).json({ error: "Email already registered hai" });
-    await User.create({ email, password: await bcrypt.hash(password, 10) });
+    const isAdmin = ADMIN_EMAIL && email.toLowerCase() === ADMIN_EMAIL.toLowerCase();
+    await User.create({ email, password: await bcrypt.hash(password, 10), isAdmin });
     res.json({ message: "Account ban gaya ✅" });
   } catch (e) { res.status(500).json({ error: "Signup fail: " + e.message }); }
 });
@@ -94,7 +97,7 @@ app.post("/login", async (req, res) => {
     const user = await User.findOne({ email });
     if (!user) return res.status(404).json({ error: "User nahi mila" });
     if (!await bcrypt.compare(password, user.password)) return res.status(401).json({ error: "Password galat hai" });
-    const token = jwt.sign({ id: user._id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
+    const token = jwt.sign({ id: user._id, email: user.email, isAdmin: user.isAdmin }, JWT_SECRET, { expiresIn: "7d" });
     res.json({ token, email: user.email });
   } catch (e) { res.status(500).json({ error: "Login fail: " + e.message }); }
 });
@@ -551,7 +554,9 @@ const Reminder = mongoose.model("Reminder", new mongoose.Schema({
   alertMins: { type: Number, default: 15 },
   repeatAlarm: { type: Boolean, default: false },
   done:      { type: Boolean, default: false },
-  notified:  { type: Boolean, default: false }
+  notified:  { type: Boolean, default: false },
+  alertNotified: { type: Boolean, default: false },
+  lastNotifiedAt: { type: Number, default: 0 }
 }));
 
 // Reminders sync karo
@@ -581,41 +586,70 @@ app.post("/reminders/sync", authMiddleware, async (req, res) => {
 setInterval(async () => {
   try {
     const now = Date.now();
-    const window = 60000; // 1 minute window
+    const windowMs = 65000;
 
-    const reminders = await Reminder.find({ done: false, notified: false });
+    const reminders = await Reminder.find({ done: false });
+    
     for (const rem of reminders) {
       const diff = rem.time - now;
-      const alertMs = rem.alertMins * 60 * 1000;
+      const alertMs = (rem.alertMins || 0) * 60 * 1000;
 
-      // Alert time
-      if (rem.alertMins > 0 && diff > (alertMs - window) && diff < (alertMs + window)) {
-        const when = rem.alertMins >= 60 ? `${rem.alertMins/60} ghante pehle` : `${rem.alertMins} minute pehle`;
-        await sendFCMNotification(rem.userId, "⏰ Second Brain AI", `${when}: ${rem.title}`);
+      // ── ADVANCE ALERT — 2 baar (2 min gap)
+      if (rem.alertMins > 0 && !rem.alertNotified) {
+        const alertDiff = rem.time - alertMs - now;
+        if (alertDiff > -windowMs && alertDiff < windowMs) {
+          const when = rem.alertMins >= 60 ? `${rem.alertMins/60} ghante pehle` : `${rem.alertMins} minute pehle`;
+          // Pehli baar
+          await sendFCMNotification(rem.userId, "⏰ " + rem.title, `${when} reminder hai!`);
+          // 2 min baad doosri baar
+          setTimeout(async () => {
+            await sendFCMNotification(rem.userId, "⏰ " + rem.title, `${when} — Yaad rakhna!`);
+          }, 2 * 60 * 1000);
+          await Reminder.updateOne({ _id: rem._id }, { alertNotified: true });
+        }
       }
 
-      // Exact time
-      if (diff > -window && diff < window) {
-        await sendFCMNotification(rem.userId, "🔔 Reminder!", rem.title);
-        await Reminder.updateOne({ _id: rem._id }, { notified: true });
-        
-        // Repeat if enabled
-        if (rem.repeatAlarm) {
-          let count = 0;
-          const repeatInterval = setInterval(async () => {
-            count++;
-            const current = await Reminder.findById(rem._id);
-            if (!current || current.done || count >= 5) {
-              clearInterval(repeatInterval);
-              return;
-            }
-            await sendFCMNotification(rem.userId, "🔔 Reminder!", rem.title);
-          }, 5 * 60 * 1000); // 5 min
-        }
+      // ── EXACT TIME — 2 baar (2 min gap)
+      if (!rem.notified && diff > -windowMs && diff < windowMs) {
+        // Pehli baar
+        await sendFCMNotification(rem.userId, "🔔 " + rem.title, "Reminder time ho gaya!");
+        // 2 min baad doosri baar
+        setTimeout(async () => {
+          const current = await Reminder.findById(rem._id);
+          if (current && !current.done) {
+            await sendFCMNotification(rem.userId, "🔔 " + rem.title, "Abhi bhi baaki hai!");
+          }
+        }, 2 * 60 * 1000);
+        await Reminder.updateOne({ _id: rem._id }, { notified: true, lastNotifiedAt: now });
       }
     }
   } catch(e) { console.error("Reminder check error:", e.message); }
 }, 60000);
+
+// ── ADMIN ROUTES — sirf stats, individual data nahi
+app.get("/admin/stats", authMiddleware, async (req, res) => {
+  try {
+    if (!req.user.isAdmin) return res.status(403).json({ error: "Admin access chahiye" });
+    
+    const totalUsers = await User.countDocuments();
+    const totalNotes = await Note.countDocuments();
+    const totalReminders = await Reminder.countDocuments();
+    const activeReminders = await Reminder.countDocuments({ done: false });
+    
+    // Last 7 days new users
+    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const newUsers = await User.countDocuments({ _id: { $gte: require("mongoose").Types.ObjectId.createFromTime(weekAgo/1000) }});
+    
+    res.json({
+      totalUsers,
+      totalNotes,
+      totalReminders,
+      activeReminders,
+      newUsersThisWeek: newUsers,
+      // Individual user data nahi bheja — privacy ke liye
+    });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`🚀 Server port ${PORT} pe chal raha hai — Auto Fallback AI ⚡`));
