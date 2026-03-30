@@ -12,7 +12,20 @@ if (process.env.FIREBASE_PROJECT_ID && process.env.FIREBASE_PRIVATE_KEY) {
     credential: admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: process.env.FIREBASE_PRIVATE_KEY.replace(/\\n/g, '\n')
+      privateKey: (() => {
+        let key = process.env.FIREBASE_PRIVATE_KEY || '';
+        // Sab tarah ke formats handle karo
+        key = key.replace(/\\n/g, '\n');  // literal \n
+        key = key.replace(/\\\\n/g, '\n'); // double escaped
+        // Agar key mein actual newlines nahi hain to add karo
+        if (!key.includes('\n')) {
+          key = key.replace('-----BEGIN PRIVATE KEY-----', '-----BEGIN PRIVATE KEY-----\n')
+                   .replace('-----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----');
+        }
+        // Quotes hata do agar hain
+        key = key.replace(/^["']|["']$/g, '');
+        return key;
+      })()
     })
   });
   console.log("✅ Firebase Admin initialized");
