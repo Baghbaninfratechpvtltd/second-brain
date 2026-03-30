@@ -142,6 +142,22 @@
       
     }
   </style>
+
+  <!-- Firebase FCM -->
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyCfUbbGIy2Xt9NdZ1wLLCPGGhplId989rY",
+      authDomain: "secondbrain-ai-e2193.firebaseapp.com",
+      projectId: "secondbrain-ai-e2193",
+      storageBucket: "secondbrain-ai-e2193.firebasestorage.app",
+      messagingSenderId: "58084412193",
+      appId: "1:58084412193:web:c4e8ccefe7758e27ba4c60"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const messaging = firebase.messaging();
+  </script>
 </head>
 <body>
 
@@ -983,7 +999,55 @@ function saveReminders(){
   localStorage.setItem("sb_reminders",JSON.stringify(reminders));
   updateStats();
   syncRemindersToSW(); // Background reminder ke liye SW ko sync karo
+  syncRemindersToServer(); // Server side FCM ke liye
 }
+
+async function syncRemindersToServer(){
+  try {
+    const token = localStorage.getItem("sb_token");
+    if (!token) return;
+    await fetch(BASE + "/reminders/sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+      body: JSON.stringify({ reminders })
+    });
+  } catch(e) { console.log("Server sync error:", e.message); }
+}
+
+
+// ── FCM TOKEN — Server ko bhejo taaki push notifications aa sake
+async function registerFCMToken() {
+  try {
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') return;
+    
+    const token = await messaging.getToken({
+      vapidKey: 'BMc-2pCjFdCNYLxRX41KisSpxwHAf9IIRC7FF67Rklf8agDvs7rJeKtVFlIHc7X7ZUsTTLeOlxVs3wS65jgU9YY'
+    });
+    
+    if (token) {
+      localStorage.setItem('fcm_token', token);
+      // Server ko token bhejo
+      const authToken = localStorage.getItem('sb_token');
+      if (authToken) {
+        await fetch(BASE + '/fcm-token', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + authToken },
+          body: JSON.stringify({ token })
+        });
+        console.log('✅ FCM token registered');
+      }
+    }
+  } catch(e) {
+    console.log('FCM token error:', e.message);
+  }
+}
+
+// FCM foreground messages
+messaging.onMessage(payload => {
+  console.log('FCM message received:', payload);
+  showToast('🔔 ' + (payload.notification?.title || 'Reminder!'));
+});
 
 function syncRemindersToSW(){
   if(!("serviceWorker" in navigator))return;
@@ -1108,23 +1172,63 @@ function loadOCRImage(file){
 
 async function doOCR(){
   if(!ocrImageData) return showToast("Pehle image upload karo!");
-
-  const token = localStorage.getItem("sb_token");
-  if(!token) return showToast("❌ Pehle login karo!");
-
-  setProgress("ocrProgress", 20);
-  showToast("⏳ AI text padh raha hai...");
-  document.getElementById("ocrResult").textContent = "⏳ AI image scan kar raha hai...";
+  
+  setProgress("ocrProgress", 10);
+  showToast("⏳ Text padha ja raha hai...");
+  document.getElementById("ocrResult").textContent = "⏳ Scanning...";
   document.getElementById("ocrResultSection").style.display = "block";
 
+  // Method 1: Tesseract.js — browser mein hi kaam karta hai, no server needed
   try {
+    if(typeof Tesseract !== "undefined") {
+      document.getElementById("ocrResult").textContent = "⏳ Tesseract scan kar raha hai...";
+      const result = await Tesseract.recognize(
+        ocrImageData,
+        "hin+eng",
+        {
+          logger: m => {
+            if(m.status === "recognizing text") {
+              const pct = Math.round(m.progress * 70) + 10;
+              setProgress("ocrProgress", pct);
+              document.getElementById("ocrResult").textContent = "⏳ " + Math.round(m.progress*100) + "% scan ho gaya...";
+            }
+          }
+        }
+      );
+      
+      const text = result.data.text.trim();
+      if(text && text.length > 3) {
+        setProgress("ocrProgress", 100);
+        document.getElementById("ocrResult").textContent = text;
+        showToast("✅ Text extract ho gaya! " + text.length + " characters");
+        setTimeout(()=>setProgress("ocrProgress",0), 2000);
+        return;
+      }
+      // Text nahi mila Tesseract se, AI try karo
+      console.log("Tesseract: no text found, trying AI...");
+    }
+  } catch(e) {
+    console.log("Tesseract error, trying AI:", e.message);
+  }
+
+  // Method 2: AI Vision — fallback
+  const token = localStorage.getItem("sb_token");
+  if(!token) {
+    document.getElementById("ocrResult").textContent = "❌ Login karke dobara try karo";
+    showToast("❌ Login required for AI OCR");
+    setProgress("ocrProgress", 0);
+    return;
+  }
+
+  try {
+    document.getElementById("ocrResult").textContent = "⏳ AI se text extract ho raha hai...";
+    setProgress("ocrProgress", 60);
     const base64Data = ocrImageData.split(",")[1];
-    setProgress("ocrProgress", 50);
     const res = await fetch(BASE+"/chat", {
       method: "POST",
       headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
       body: JSON.stringify({
-        msg: "Extract ALL text from this image exactly as it appears. Return ONLY the raw text. No explanation, no formatting changes. Preserve Hindi, English, numbers exactly as written.",
+        msg: "Extract ALL text from this image exactly as written. Return only the text, no explanation. Keep Hindi in Hindi, English in English.",
         image: base64Data,
         history: []
       })
@@ -1133,15 +1237,15 @@ async function doOCR(){
     setProgress("ocrProgress", 100);
     if(data.reply && data.reply.length > 2) {
       document.getElementById("ocrResult").textContent = data.reply;
-      showToast("✅ Text extract ho gaya! " + data.reply.length + " characters");
+      showToast("✅ AI se text extract ho gaya!");
     } else {
-      document.getElementById("ocrResult").textContent = "❌ Image mein readable text nahi mila.";
+      document.getElementById("ocrResult").textContent = "❌ Image mein readable text nahi mila. Clear image try karo.";
       showToast("❌ Text nahi mila");
     }
     setTimeout(()=>setProgress("ocrProgress",0), 2000);
   } catch(e) {
     console.error("AI OCR Error:", e);
-    document.getElementById("ocrResult").textContent = "❌ OCR fail ho gaya. Dobara try karo.";
+    document.getElementById("ocrResult").textContent = "❌ Dono methods fail ho gaye. Clear image use karo.";
     showToast("❌ OCR fail");
     setProgress("ocrProgress", 0);
   }
@@ -1305,6 +1409,7 @@ if("serviceWorker"in navigator){
     console.log("✅ SW registered");
     // App load hone pe reminders sync karo
     setTimeout(syncRemindersToSW, 2000);
+    setTimeout(registerFCMToken, 3000);
   }).catch(()=>{});
 }
 
