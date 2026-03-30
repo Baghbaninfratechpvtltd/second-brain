@@ -1,4 +1,4 @@
-const CACHE_NAME = "second-brain-v4";
+const CACHE_NAME = "second-brain-v5";
 const STATIC_FILES = ["/", "/index.html", "/manifest.json", "/icon.png"];
 
 // ── INSTALL
@@ -17,8 +17,6 @@ self.addEventListener("activate", e => {
       .then(keys => Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))))
       .then(() => self.clients.claim())
   );
-  // Background reminder check shuru karo
-  startReminderCheck();
 });
 
 // ── FETCH
@@ -40,69 +38,7 @@ self.addEventListener("fetch", e => {
   );
 });
 
-// ── BACKGROUND REMINDER CHECK
-function startReminderCheck() {
-  // Har 30 second mein check karo
-  setInterval(checkReminders, 30000);
-}
-
-async function checkReminders() {
-  try {
-    // LocalStorage directly SW mein access nahi hoti
-    // Client se reminders maango
-    const clients = await self.clients.matchAll();
-    if (clients.length > 0) {
-      // App open hai — client handle kar lega
-      return;
-    }
-    
-    // App band hai — IndexedDB se reminders lo
-    const reminders = await getRemindersFromDB();
-    if (!reminders || !reminders.length) return;
-    
-    const now = Date.now();
-    for (const rem of reminders) {
-      if (rem.done) continue;
-      const diff = rem.time - now;
-      const alertMs = (rem.alertMins || 15) * 60 * 1000;
-      const window30 = 30000;
-      
-      // Alert time pe
-      if (rem.alertMins > 0 && diff > (alertMs - window30) && diff < (alertMs + window30)) {
-        const when = rem.alertMins >= 60 
-          ? `${rem.alertMins/60} ghante pehle` 
-          : `${rem.alertMins} minute pehle`;
-        fireNotification(rem, `⏰ ${when}`);
-      }
-      
-      // Exact time pe
-      if (diff > -30000 && diff < 30000) {
-        fireNotification(rem, "🔔 Abhi");
-        // Mark done
-        await markReminderDone(rem.id);
-      }
-    }
-  } catch(e) {
-    console.error("SW Reminder check error:", e);
-  }
-}
-
-function fireNotification(rem, when) {
-  self.registration.showNotification("🔔 Second Brain AI", {
-    body: `${when}: ${rem.title}`,
-    icon: "/icon.png",
-    badge: "/icon.png",
-    vibrate: [300, 100, 300],
-    tag: `reminder-${rem.id}`,
-    requireInteraction: true, // notification tab tak rahe jab tak user dismiss na kare
-    actions: [
-      { action: "dismiss", title: "Dismiss" },
-      { action: "open", title: "App Kholo" }
-    ]
-  });
-}
-
-// ── INDEXEDDB — reminders store/get karne ke liye
+// ── INDEXEDDB
 function openDB() {
   return new Promise((resolve, reject) => {
     const req = indexedDB.open("SecondBrainDB", 1);
@@ -118,54 +54,122 @@ function openDB() {
 }
 
 async function getRemindersFromDB() {
-  const db = await openDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction("reminders", "readonly");
-    const store = tx.objectStore("reminders");
-    const req = store.getAll();
-    req.onsuccess = () => resolve(req.result);
-    req.onerror = () => resolve([]);
-  });
+  try {
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction("reminders", "readonly");
+      const store = tx.objectStore("reminders");
+      const req = store.getAll();
+      req.onsuccess = () => resolve(req.result || []);
+      req.onerror = () => resolve([]);
+    });
+  } catch(e) { return []; }
 }
 
 async function markReminderDone(id) {
-  const db = await openDB();
-  return new Promise((resolve) => {
-    const tx = db.transaction("reminders", "readwrite");
-    const store = tx.objectStore("reminders");
-    const req = store.get(id);
-    req.onsuccess = () => {
-      const rem = req.result;
-      if (rem) { rem.done = true; store.put(rem); }
-      resolve();
-    };
-  });
+  try {
+    const db = await openDB();
+    return new Promise((resolve) => {
+      const tx = db.transaction("reminders", "readwrite");
+      const store = tx.objectStore("reminders");
+      const req = store.get(id);
+      req.onsuccess = () => {
+        const rem = req.result;
+        if (rem) { rem.done = true; store.put(rem); }
+        resolve();
+      };
+      req.onerror = () => resolve();
+    });
+  } catch(e) {}
 }
-
-// ── MESSAGE — App se reminders sync karo
-self.addEventListener("message", e => {
-  if (e.data.type === "SYNC_REMINDERS") {
-    saveRemindersToDB(e.data.reminders);
-  }
-  if (e.data.type === "START_REMINDER_CHECK") {
-    startReminderCheck();
-  }
-});
 
 async function saveRemindersToDB(reminders) {
   try {
     const db = await openDB();
     const tx = db.transaction("reminders", "readwrite");
     const store = tx.objectStore("reminders");
-    await store.clear();
-    for (const rem of reminders) {
-      store.put(rem);
+    store.clear();
+    for (const rem of reminders) store.put(rem);
+    console.log("✅ Reminders synced:", reminders.length);
+  } catch(e) { console.error("DB save error:", e); }
+}
+
+// ── NOTIFICATION
+function fireNotification(rem, when) {
+  return self.registration.showNotification("🔔 Second Brain AI", {
+    body: `${when}: ${rem.title}`,
+    icon: "/icon.png",
+    badge: "/icon.png",
+    vibrate: [300, 100, 300],
+    tag: `reminder-${rem.id}`,
+    requireInteraction: true,
+    actions: [
+      { action: "dismiss", title: "Dismiss" },
+      { action: "open", title: "App Kholo" }
+    ]
+  });
+}
+
+// ── REMINDER CHECK — har reminder ke liye alag setTimeout + repeat until dismissed
+async function scheduleReminders() {
+  const reminders = await getRemindersFromDB();
+  if (!reminders.length) return;
+
+  const now = Date.now();
+  for (const rem of reminders) {
+    if (rem.done) continue;
+
+    // Alert time (advance warning)
+    if (rem.alertMins > 0) {
+      const alertMs = rem.alertMins * 60 * 1000;
+      const alertTimeLeft = rem.time - alertMs - now;
+      if (alertTimeLeft > 0 && alertTimeLeft < 24 * 60 * 60 * 1000) {
+        const when = rem.alertMins >= 60
+          ? `${rem.alertMins / 60} ghante pehle`
+          : `${rem.alertMins} minute pehle`;
+        setTimeout(() => {
+          fireNotification(rem, `⏰ ${when}`);
+        }, alertTimeLeft);
+      }
     }
-    console.log("✅ Reminders synced to SW:", reminders.length);
-  } catch(e) {
-    console.error("DB save error:", e);
+
+    // Exact time pe — aur phir har 2 minute mein repeat karo jab tak dismiss na ho
+    const timeLeft = rem.time - now;
+    if (timeLeft > 0 && timeLeft < 24 * 60 * 60 * 1000) {
+      setTimeout(() => repeatNotification(rem, 0), timeLeft);
+    }
+    // Agar time nikal gaya but done nahi — abhi bhi fire karo
+    if (timeLeft <= 0 && timeLeft > -30 * 60 * 1000) {
+      repeatNotification(rem, 0);
+    }
+  }
+  console.log("✅ Reminders scheduled:", reminders.filter(r => !r.done).length);
+}
+
+// Har 2 minute mein repeat karo — max 5 baar
+async function repeatNotification(rem, count) {
+  const reminders = await getRemindersFromDB();
+  const current = reminders.find(r => r.id === rem.id);
+  if (!current || current.done) return; // User ne dismiss kar diya
+
+  await fireNotification(current, "🔔 Reminder");
+
+  if (count < 4) { // Max 5 baar (0-4)
+    setTimeout(() => repeatNotification(rem, count + 1), 2 * 60 * 1000); // 2 min baad
   }
 }
+
+// ── MESSAGE — App se reminders sync karo
+self.addEventListener("message", e => {
+  if (e.data.type === "SYNC_REMINDERS") {
+    saveRemindersToDB(e.data.reminders).then(() => {
+      scheduleReminders(); // Sync hone ke baad schedule karo
+    });
+  }
+  if (e.data.type === "START_REMINDER_CHECK") {
+    scheduleReminders();
+  }
+});
 
 // ── NOTIFICATION CLICK
 self.addEventListener("notificationclick", e => {
@@ -173,16 +177,14 @@ self.addEventListener("notificationclick", e => {
   if (e.action === "open" || !e.action) {
     e.waitUntil(
       clients.matchAll({ type: "window" }).then(clientList => {
-        if (clientList.length > 0) {
-          return clientList[0].focus();
-        }
+        if (clientList.length > 0) return clientList[0].focus();
         return clients.openWindow("/");
       })
     );
   }
 });
 
-// ── PUSH NOTIFICATIONS
+// ── PUSH
 self.addEventListener("push", e => {
   const data = e.data ? e.data.json() : {};
   e.waitUntil(
