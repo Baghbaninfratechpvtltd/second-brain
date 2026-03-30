@@ -165,7 +165,6 @@
   <div class="brand">🧠 Second Brain AI</div>
   <div class="nav-right">
     <span class="user-email" id="userLabel"></span>
-    <button id="adminBtn" onclick="showAdminStats()" style="display:none;background:var(--purple);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:0.8rem;cursor:pointer;margin-right:6px">📊 Admin</button>
     <button class="secondary sm" onclick="logout()">Logout</button>
   </div>
 </div>
@@ -1087,7 +1086,21 @@ function renderReminders(){
   if(up)up.innerHTML=reminders.filter(r=>!r.done).slice(0,3).map(r=>`<div class="reminder-item"><div class="reminder-info"><div class="reminder-title">${esc(r.title)}</div><div class="reminder-time">⏰ ${new Date(r.time).toLocaleString('hi-IN')}</div></div></div>`).join("")||'<div class="empty-state">Koi upcoming reminder nahi</div>';
 }
 
-function deleteReminder(id){reminders=reminders.filter(r=>r.id!==id);saveReminders();renderReminders();}
+async function deleteReminder(id) {
+  reminders = reminders.filter(r => r.id !== id);
+  saveReminders();
+  renderReminders();
+  // Seedha server pe bhi delete karo
+  try {
+    const token = localStorage.getItem("sb_token");
+    if (token) {
+      await fetch(BASE + "/reminders/delete/" + id, {
+        method: "DELETE",
+        headers: { "Authorization": "Bearer " + token }
+      });
+    }
+  } catch(e) { console.log("Delete sync error:", e.message); }
+}
 
 function startReminderChecker(){
   setInterval(()=>{
@@ -1483,11 +1496,6 @@ if("serviceWorker"in navigator){
     console.log("✅ SW registered");
     // App load hone pe reminders sync karo
     setTimeout(syncRemindersToSW, 2000);
-    // Admin button show karo agar admin hai
-    try {
-      const payload = JSON.parse(atob(localStorage.getItem("sb_token").split(".")[1]));
-      if (payload.isAdmin) document.getElementById("adminBtn").style.display = "inline-block";
-    } catch(e) {}
     // Custom sound restore
     customSoundData = localStorage.getItem("customSoundData") || null;
     setTimeout(registerFCMToken, 3000);
@@ -1576,62 +1584,6 @@ window.addEventListener("load", () => {
     };
   }
 });
-</script>
-
-<!-- Admin Stats Modal -->
-<div id="adminModal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.8);z-index:9999;align-items:center;justify-content:center">
-  <div style="background:var(--bg2);border-radius:16px;padding:24px;width:90%;max-width:400px;border:1px solid var(--border)">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
-      <h3 style="margin:0;color:var(--text)">📊 Admin Stats</h3>
-      <button onclick="closeAdminModal()" style="background:none;border:none;color:var(--text2);font-size:1.2rem;cursor:pointer">✕</button>
-    </div>
-    <div id="adminStatsContent" style="color:var(--text)">
-      <div style="text-align:center;padding:20px;color:var(--text2)">Loading...</div>
-    </div>
-    <p style="font-size:0.72rem;color:var(--text2);margin-top:12px;text-align:center">⚠️ Individual user data visible nahi hai — Privacy protected</p>
-  </div>
-</div>
-<script>
-// ── ADMIN
-async function showAdminStats() {
-  document.getElementById("adminModal").style.display = "flex";
-  const token = localStorage.getItem("sb_token");
-  try {
-    const res = await fetch(BASE + "/admin/stats", {
-      headers: { "Authorization": "Bearer " + token }
-    });
-    const data = await res.json();
-    if (data.error) {
-      document.getElementById("adminStatsContent").innerHTML = '<div style="color:red">' + data.error + '</div>';
-      return;
-    }
-    document.getElementById("adminStatsContent").innerHTML = `
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
-        <div style="background:var(--bg3);padding:12px;border-radius:10px;text-align:center">
-          <div style="font-size:1.8rem;font-weight:700;color:var(--purple)">${data.totalUsers}</div>
-          <div style="font-size:0.8rem;color:var(--text2)">Total Users</div>
-        </div>
-        <div style="background:var(--bg3);padding:12px;border-radius:10px;text-align:center">
-          <div style="font-size:1.8rem;font-weight:700;color:var(--purple)">${data.newUsersThisWeek}</div>
-          <div style="font-size:0.8rem;color:var(--text2)">New This Week</div>
-        </div>
-        <div style="background:var(--bg3);padding:12px;border-radius:10px;text-align:center">
-          <div style="font-size:1.8rem;font-weight:700;color:#10b981">${data.totalNotes}</div>
-          <div style="font-size:0.8rem;color:var(--text2)">Total Notes</div>
-        </div>
-        <div style="background:var(--bg3);padding:12px;border-radius:10px;text-align:center">
-          <div style="font-size:1.8rem;font-weight:700;color:#f59e0b">${data.activeReminders}</div>
-          <div style="font-size:0.8rem;color:var(--text2)">Active Reminders</div>
-        </div>
-      </div>`;
-  } catch(e) {
-    document.getElementById("adminStatsContent").innerHTML = '<div style="color:red">Error: ' + e.message + '</div>';
-  }
-}
-
-function closeAdminModal() {
-  document.getElementById("adminModal").style.display = "none";
-}
 </script>
 </body>
 </html>
