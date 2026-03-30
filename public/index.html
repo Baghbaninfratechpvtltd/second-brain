@@ -442,15 +442,21 @@
           </select>
         </div>
         <div style="display:flex;gap:8px;margin-bottom:8px;align-items:center">
-          <select id="remAlarmSound" style="margin-bottom:0;flex:1">
+          <select id="remAlarmSound" style="margin-bottom:0;flex:1" onchange="toggleCustomSound(this.value)">
+            <option value="voice" selected>🗣 Voice + Notification</option>
             <option value="beep">🔔 Beep Alarm</option>
             <option value="bell">🔕 Bell</option>
-            <option value="voice" selected>🗣 Voice + Notification</option>
+            <option value="custom">🎵 Custom Song</option>
             <option value="vibrate">📳 Sirf Vibrate</option>
           </select>
           <label style="display:flex;align-items:center;gap:5px;font-size:0.8rem;color:var(--text2);flex-shrink:0;cursor:pointer">
             <input type="checkbox" id="remRepeatAlarm" style="width:16px;height:16px;margin:0;accent-color:var(--purple)"> Repeat
           </label>
+        </div>
+        <div id="customSoundDiv" style="display:none;margin-bottom:8px">
+          <label style="font-size:0.8rem;color:var(--text2);display:block;margin-bottom:4px">🎵 Apna song choose karo (MP3/WAV):</label>
+          <input type="file" id="customSoundFile" accept="audio/*" style="font-size:0.8rem;color:var(--text2)" onchange="loadCustomSound(this)">
+          <div id="customSoundName" style="font-size:0.75rem;color:var(--purple);margin-top:4px"></div>
         </div>
         <button onclick="addReminder()" style="width:100%">Set Reminder 🔔</button>
         <p style="font-size:0.72rem;color:var(--text2);margin-top:7px">⚠️ Aapke chune hue time pe aur exact time pe voice + notification milega</p>
@@ -943,7 +949,10 @@ function addReminder(){
   const alarmSound=document.getElementById("remAlarmSound").value;
   const repeatAlarm=document.getElementById("remRepeatAlarm").checked;
   if(!title||!dt)return showToast("❌ Title aur time chahiye!");
-  reminders.push({id:Date.now(),title,time:new Date(dt).getTime(),repeat,alertMins,alarmSound,repeatAlarm,done:false});
+  // Custom sound data load karo
+  const savedCustomSound = localStorage.getItem("customSoundData") || null;
+  reminders.push({id:Date.now(),title,time:new Date(dt).getTime(),repeat,alertMins,alarmSound,repeatAlarm,
+    customSoundData: alarmSound === "custom" ? savedCustomSound : null, done:false});
   saveReminders();
   document.getElementById("remTitle").value="";
   document.getElementById("remDateTime").value="";
@@ -1100,16 +1109,80 @@ function startReminderChecker(){
   },30000);
 }
 
-function fireReminder(rem,when){
-  // Alarm sound bajao
-  const sound=rem.alarmSound||"voice";
-  if(sound!=="vibrate")playAlarmSound(sound,rem.repeatAlarm);
-  if(sound==="vibrate"&&navigator.vibrate)navigator.vibrate(rem.repeatAlarm?[400,200,400,200,400]:[400]);
-  // Voice alert
-  if(sound==="voice"||sound==="bell")speakText(`${when} aapka reminder hai: ${rem.title}`);
+function fireReminder(rem, when) {
+  const sound = rem.alarmSound || "voice";
+  
+  // Voice se bolkar batao — title ke saath
+  if (sound === "voice") {
+    // Pehle beep karo attention ke liye
+    playAlarmSound("beep", false);
+    // 1 second baad voice se title bolo
+    setTimeout(() => {
+      const msg = `${when}! Aapka reminder hai: ${rem.title}. ${rem.title}.`;
+      speakText(msg);
+      // Repeat on hai to baar baar bolo
+      if (rem.repeatAlarm) {
+        let count = 0;
+        const iv = setInterval(() => {
+          count++;
+          if (count >= 4) { clearInterval(iv); return; }
+          speakText(`Reminder: ${rem.title}`);
+        }, 8000);
+      }
+    }, 1000);
+  } else if (sound === "custom" && rem.customSoundData) {
+    // Custom song bajao
+    playCustomSound(rem.customSoundData, rem.repeatAlarm);
+  } else if (sound === "vibrate") {
+    if (navigator.vibrate) navigator.vibrate(rem.repeatAlarm ? [500,200,500,200,500,200,500] : [500]);
+  } else {
+    playAlarmSound(sound, rem.repeatAlarm);
+  }
+
   // Notification
-  if(Notification.permission==="granted")new Notification("🔔 Second Brain AI",{body:`${when}: ${rem.title}`,icon:"/icon.png"});
-  showToast(`${when}: ${rem.title}`);
+  if (Notification.permission === "granted") {
+    new Notification("🔔 " + rem.title, {
+      body: when + " — " + rem.title,
+      icon: "/icon.png",
+      requireInteraction: true
+    });
+  }
+  showToast(`🔔 ${when}: ${rem.title}`);
+}
+
+// Custom sound bajao
+let customAudio = null;
+function playCustomSound(dataUrl, repeat) {
+  if (customAudio) { customAudio.pause(); customAudio = null; }
+  customAudio = new Audio(dataUrl);
+  customAudio.play();
+  if (repeat) {
+    customAudio.onended = () => {
+      setTimeout(() => {
+        if (customAudio) customAudio.play();
+      }, 3000);
+    };
+  }
+}
+
+// Custom sound file load karo
+let customSoundData = null;
+function loadCustomSound(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    customSoundData = e.target.result;
+    document.getElementById("customSoundName").textContent = "✅ " + file.name;
+    localStorage.setItem("customSoundData", customSoundData);
+    showToast("✅ Song load ho gaya!");
+  };
+  reader.readAsDataURL(file);
+}
+
+// Custom sound toggle
+function toggleCustomSound(val) {
+  document.getElementById("customSoundDiv").style.display = val === "custom" ? "block" : "none";
 }
 
 // ── TRANSLATOR
@@ -1409,6 +1482,8 @@ if("serviceWorker"in navigator){
     console.log("✅ SW registered");
     // App load hone pe reminders sync karo
     setTimeout(syncRemindersToSW, 2000);
+    // Custom sound restore
+    customSoundData = localStorage.getItem("customSoundData") || null;
     setTimeout(registerFCMToken, 3000);
   }).catch(()=>{});
 }
