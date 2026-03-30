@@ -36,6 +36,7 @@ app.use(cors());
 app.use(express.json({ limit: "10mb" }));
 app.use(express.static(path.join(__dirname, "public")));
 app.get("/", (req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
+app.get("/ping", (req, res) => res.send("OK"));
 
 const MONGO_URI         = process.env.MONGO_URI         || "YOUR_MONGODB_URI";
 const JWT_SECRET        = process.env.JWT_SECRET        || "supersecretkey123";
