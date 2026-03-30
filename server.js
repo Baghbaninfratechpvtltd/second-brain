@@ -627,6 +627,14 @@ setInterval(async () => {
   } catch(e) { console.error("Reminder check error:", e.message); }
 }, 60000);
 
+// ── DELETE INDIVIDUAL REMINDER
+app.delete("/reminders/delete/:reminderId", authMiddleware, async (req, res) => {
+  try {
+    await Reminder.deleteMany({ userId: req.user.id, reminderId: parseInt(req.params.reminderId) });
+    res.json({ message: "Deleted ✅" });
+  } catch(e) { res.status(500).json({ error: e.message }); }
+});
+
 // ── ADMIN ROUTES — sirf stats, individual data nahi
 app.get("/admin/stats", authMiddleware, async (req, res) => {
   try {
