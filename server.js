@@ -260,17 +260,28 @@ async function webSearch(query) {
 
 // ── DETECT karo ki web search chahiye ya nahi
 function needsWebSearch(msg) {
-  const lower = msg.toLowerCase();
-  // Current/recent info ke keywords
-  const searchTriggers = [
-    "aaj", "today", "abhi", "latest", "current", "2024", "2025", "2026",
-    "news", "price", "rate", "score", "result", "winner", "election",
-    "stock", "share", "weather", "match", "ipl", "world cup",
-    "kab hua", "kya hua", "recently", "new", "update", "launched",
-    "government", "pm modi", "president", "minister",
-    "vacancy", "recruitment", "exam date", "admit card"
+  const lower = msg.toLowerCase().trim();
+  
+  // Simple greetings pe skip
+  if (/^(hi+|hello|hey|namaste|kaise ho|kya haal|bye|ok|okay|haan|nahi|thanks)$/i.test(lower)) return false;
+  
+  // Question mark hai — search karo
+  if (msg.includes("?")) return true;
+  
+  // 4 se zyada words — search karo  
+  if (lower.split(" ").length > 4) return true;
+
+  // Keywords
+  const triggers = [
+    "aaj","today","abhi","kal","latest","current","2024","2025","2026",
+    "news","khabar","kya hua","score","result","election","match","ipl",
+    "price","rate","daam","stock","sensex","crypto","petrol","gold","sona",
+    "modi","president","minister","sarkar","government",
+    "vacancy","recruitment","exam","sarkari","naukri",
+    "weather","mausam","temperature",
+    "kaun","kya hai","what is","who is","kitna","batao","explain","bताओ"
   ];
-  return searchTriggers.some(k => lower.includes(k));
+  return triggers.some(k => lower.includes(k));
 }
 
 
